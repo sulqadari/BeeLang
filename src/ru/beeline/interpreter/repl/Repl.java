@@ -23,15 +23,11 @@ public class Repl
         {
             input = scanner.nextLine();
             lexer = new Lexer(input);
-            //token = lexer.nextToken();
+            
             for (token = lexer.nextToken(); token.type != TokenConstants.EOF; token = lexer.nextToken())
             {
                 out.printf("Type: %-8s Literal: %8s\n", token.type, token.literal);
             }
-            // while(token.type != TokenConstants.EOF)
-            // {
-
-            // }
             out.print(CONST);
         }
         scanner.close();
