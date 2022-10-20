@@ -1,4 +1,4 @@
-package ru.beeline.interpreter.ast;
+package ru.beeline.interpreter.ast.interfaces;
 
 public interface StatementInterface extends NodeInterface
 {

@@ -6,7 +6,6 @@ import java.util.Scanner;
 
 import ru.beeline.interpreter.lexer.Lexer;
 import ru.beeline.interpreter.token.Token;
-import ru.beeline.interpreter.token.TokenConstants;
 
 public class Repl
 {
@@ -24,7 +23,7 @@ public class Repl
             input = scanner.nextLine();
             lexer = new Lexer(input);
             
-            for (token = lexer.nextToken(); token.type != TokenConstants.EOF; token = lexer.nextToken())
+            for (token = lexer.nextToken(); token.type != Token.EOF; token = lexer.nextToken())
             {
                 out.printf("Type: %-8s Literal: %8s\n", token.type, token.literal);
             }

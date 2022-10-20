@@ -1,13 +1,9 @@
 import java.util.Hashtable;
 
-import javax.naming.LinkException;
-
-import ru.beeline.interpreter.exception.InterpreterException;
 import ru.beeline.interpreter.lexer.Lexer;
 import ru.beeline.interpreter.token.Token;
-import ru.beeline.interpreter.token.TokenConstants;
 
-public class LexerTest implements TokenConstants
+public class LexerTest
 {
     public static void main(String[] args)
     {
@@ -22,9 +18,9 @@ public class LexerTest implements TokenConstants
 
         Lexer lexer;
         Token token;
-        Hashtable<String, String> hashTable = new Hashtable<String, String>();
+        Hashtable<String, String> refVals = new Hashtable<String, String>();
 
-        initHashTable(hashTable);
+        initHashTable(refVals);
         input = 
         (
             "if(10 == ten) {"
@@ -52,9 +48,9 @@ public class LexerTest implements TokenConstants
         for(int i = 0; i < inLen; ++i)
         {
             token = lexer.nextToken();
-            if (hashTable.containsKey(token.literal))
+            if (refVals.containsKey(token.literal))
             {
-                if(!hashTable.containsValue(token.type))
+                if(!refVals.containsValue(token.type))
                 {
                     System.out.println("Error: unknown type " + token.type);
                     break;
@@ -67,40 +63,40 @@ public class LexerTest implements TokenConstants
         }
     }
 
-    private static void initHashTable(Hashtable<String, String> hashTable)
+    private static void initHashTable(Hashtable<String, String> refVals)
     {
-        hashTable.put("==", EQ);
-        hashTable.put("!=", NOT_EQ);
-        hashTable.put("let", LET);
-        hashTable.put("five", IDENT);
-        hashTable.put("=", ASSIGN);
-        hashTable.put("5", INT);
-        hashTable.put(";", SEMICOLON);
+        refVals.put("==", Token.EQ);
+        refVals.put("!=", Token.NOT_EQ);
+        refVals.put("let", Token.LET);
+        refVals.put("five", Token.IDENT);
+        refVals.put("=", Token.ASSIGN);
+        refVals.put("5", Token.INT);
+        refVals.put(";", Token.SEMICOLON);
 
-        hashTable.put("let", LET);
-        hashTable.put("ten", IDENT);
-        hashTable.put("=", ASSIGN);
-        hashTable.put("10", INT);
-        hashTable.put(";", SEMICOLON);
+        refVals.put("let", Token.LET);
+        refVals.put("ten", Token.IDENT);
+        refVals.put("=", Token.ASSIGN);
+        refVals.put("10", Token.INT);
+        refVals.put(";", Token.SEMICOLON);
 
-        hashTable.put("", EOF);
-        hashTable.put("add", IDENT);
-        hashTable.put("fn", FUNCTION);
-        hashTable.put("(", LPAREN);
-        hashTable.put(")", RPAREN);
-        hashTable.put("x", IDENT);
-        hashTable.put(",", COMMA);
-        hashTable.put("y", IDENT);
-        hashTable.put("{", LBRACE);
-        hashTable.put("+", PLUS);
-        hashTable.put("}", RBRACE);
-        hashTable.put("result", IDENT);
-        hashTable.put("if", IF);
-        hashTable.put("<", LT);
-        hashTable.put("return", RETURN);
-        hashTable.put("true", TRUE);
-        hashTable.put("else", ELSE);
-        hashTable.put("false", FALSE);
+        refVals.put("", Token.EOF);
+        refVals.put("add", Token.IDENT);
+        refVals.put("fn", Token.FUNCTION);
+        refVals.put("(", Token.LPAREN);
+        refVals.put(")", Token.RPAREN);
+        refVals.put("x", Token.IDENT);
+        refVals.put(",", Token.COMMA);
+        refVals.put("y", Token.IDENT);
+        refVals.put("{", Token.LBRACE);
+        refVals.put("+", Token.PLUS);
+        refVals.put("}", Token.RBRACE);
+        refVals.put("result", Token.IDENT);
+        refVals.put("if", Token.IF);
+        refVals.put("<", Token.LT);
+        refVals.put("return", Token.RETURN);
+        refVals.put("true", Token.TRUE);
+        refVals.put("else", Token.ELSE);
+        refVals.put("false", Token.FALSE);
         /*
             "let add = fn(x, y) {"
             "   x + y;"
