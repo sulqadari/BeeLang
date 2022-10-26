@@ -21,7 +21,7 @@ public class Token
      * <p><code>var language = "BeeLang";</code></p>
      * 
      * */
-    final String lexeme;
+    public final String lexeme;
 
     /**
      * The value retrieved from the lexeme which is used by the interpreter.
