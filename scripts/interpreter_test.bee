@@ -1,0 +1,5 @@
+"con" + "cat"	// concatenate string
+3 + 2 - 1 		// this is comment to
+(1 + 7) * 3		// precedence adherence check
+(3 + 2 - 1) > ((1 + 7) * 3)
+"three" + 3		// shall throw exception
