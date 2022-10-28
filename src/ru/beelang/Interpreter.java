@@ -1,14 +1,23 @@
 package ru.beelang;
 
-public class Interpreter implements Expr.Visitor<Object>
+import java.util.List;
+
+public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
 {
-    void interpret(Expr expression)
+    /* 
+    * Declaring as an instance's field provides a means that variables stay in memory
+    * as long as the Interpreter is still running.
+    */
+    private Environment environment = new Environment();
+
+    void interpret(List<Stmt> statements)
     {
         try
         {
-            Object value = evaluate(expression);
-            System.out.print("<< ");
-            System.out.println(stringify(value));
+            for(Stmt statement : statements)
+            {
+                execute(statement);
+            }
         }catch(RuntimeError error)
         {
             Main.runtimeError(error);
@@ -47,6 +56,12 @@ public class Interpreter implements Expr.Visitor<Object>
         }
 
         return null;
+    }
+
+    @Override
+    public Object visitVariableExpr(Expr.Variable expr)
+    {
+        return environment.get(expr.name);
     }
 
     /**
@@ -128,7 +143,90 @@ public class Interpreter implements Expr.Visitor<Object>
         return expr.accept(this);
     }
 
+    /**
+     * Helper method analogue to evaluate() one, which
+     * handles the Statements.
+     * @param stmt
+     */
+    private void execute(Stmt stmt)
+    {
+        stmt.accept(this);
+    }
+
+    @Override
+    public Void visitBlockStmt(Stmt.Block stmt)
+    {
+        executeBlock(stmt.statements, new Environment(environment));
+        return null;
+    }
+
+    /**
+     * executes a list of statements in the context of a given environment.<p/>
+     * To execute code within a given scope, this method updates the interpreter's
+     * environment field, visits all of the statements,
+     * and then restores the previous value.
+     * @param statements
+     * @param environment
+     */
+    void executeBlock(List<Stmt>statements, Environment environment)
+    {
+        Environment previous = this.environment;
+        
+        try
+        {
+            this.environment = environment;
+            for (Stmt statement : statements)
+                execute(statement);
+        }finally
+        {
+            //restore previous environment even if an exception is thrown.
+            this.environment = previous;
+        }
+    }
+
+    @Override
+    public Void visitExpressionStmt(Stmt.Expression stmt)
+    {
+        evaluate(stmt.expression);
+        return null;
+    }
+
+    @Override
+    public Void visitPrintStmt(Stmt.Print stmt)
+    {
+        Object value = evaluate(stmt.expression);
+        System.out.println(stringify(value));
+        return null;
+    }
     
+    @Override
+    public Void visitVarStmt(Stmt.Var stmt)
+    {
+        Object value = null;
+        if (null != stmt.initializer)
+        {
+            value = evaluate(stmt.initializer);
+        }
+        environment.define(stmt.name.lexeme, value);
+        return null;
+    }
+
+    /**
+     * Evaluates the right-hand side to get the value,
+     * then stores it in the named variable.<p/>
+     * This method returns the assigned value because assignment
+     * is an expression that can be nested inside other expressions.<p/>
+     * <code>var a = 1;</code>
+     * <code>print a = 2;</code>
+     */
+    @Override
+    public Object visitAssignExpr(Expr.Assign expr)
+    {
+        Object value = evaluate(expr.value);
+        environment.assign(expr.name, value);
+        return value;
+    }
+
     /**
      * Throws BeeLang-specific runtime exception.
      * @param operator

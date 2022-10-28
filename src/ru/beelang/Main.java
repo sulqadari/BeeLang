@@ -2,6 +2,7 @@ package ru.beelang;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
@@ -55,25 +56,14 @@ public class Main
     
     private static void runFile(String path) throws IOException
     {
-        // byte[] bytes = Files.readAllBytes(Paths.get(path));
-        // run(new String(bytes, Charset.defaultCharset()));
+        byte[] bytes = Files.readAllBytes(Paths.get(path));
+        run(new String(bytes, Charset.defaultCharset()));
         
-        // if (hadError)
-        //     System.exit(65);
+        if (hadError)
+            System.exit(65);
         
-        // if (hadRuntimeError)
-        //     System.exit(70);
-
-        java.util.Scanner scan = new java.util.Scanner(new File(path));
-        while(scan.hasNextLine())
-        {
-            run(scan.nextLine());
-            if (hadError)
-                System.exit(65);
-            
-            if (hadRuntimeError)
-                System.exit(70);
-        }
+        if (hadRuntimeError)
+            System.exit(70);
     }
 
     private static void runPrompt() throws IOException
@@ -100,20 +90,13 @@ public class Main
         List<Token> tokens = scanner.scanTokens();
         
         Parser parser = new Parser(tokens);
-        Expr expression = parser.parse();
-
+        //Expr expression = parser.parse();
+        List<Stmt> statements = parser.parse();
         // Stop if there was a syntax error.
         if (hadError)
             return;
 
-        interpreter.interpret(expression);
-        //System.out.println(new AstPrinter().print(expression));
-
-        // // For now, just print the tokens.
-        // for (Token token : tokens)
-        // {
-        //   System.out.println(token);
-        // }
+        interpreter.interpret(statements);
     }
 
     private static void report(int line, String where, String message)

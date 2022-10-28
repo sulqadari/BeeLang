@@ -1,5 +1,23 @@
-"con" + "cat"	// concatenate string
-3 + 2 - 1 		// this is comment to
-(1 + 7) * 3		// precedence adherence check
-(3 + 2 - 1) > ((1 + 7) * 3)
-"three" + 3		// shall throw exception
+print "stmt: con + cat";
+print "con" + "cat";				// concatenate string
+
+print "stmt: 3 + 2 - 1";
+print 3 + 2 - 1; 					// composite statement
+
+print "stmt: (1 + 7) * 3";
+print (1 + 7) * 3;					// precedence adherence check
+
+print "stmt: (3 + 2 - 1) > ((1 + 7) * 3)";
+print (3 + 2 - 1) > ((1 + 7) * 3);	// must return false
+
+print "stmt: true == false";
+print true == false;				// must return false
+
+print "stmt: 3 == 3";
+print 3 == 3;						// must return true
+
+print "stmt: 3 != 3";
+print 3 != 3;						// must return false
+
+print "stmt: three + 3";
+print "three" + 3;					// shall throw exception
