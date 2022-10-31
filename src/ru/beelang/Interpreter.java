@@ -1,14 +1,30 @@
 package ru.beelang;
 
 import java.util.List;
+import java.util.ArrayList;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
 {
-    /* 
-    * Declaring as an instance's field provides a means that variables stay in memory
-    * as long as the Interpreter is still running.
-    */
-    private Environment environment = new Environment();
+    /**Holds a fixed reference to the outermost global environment. */
+    final Environment globals = new Environment();
+    /** Changes as we enter and exit local scopes, tracks the current environment.*/
+    private Environment environment = globals;
+
+    Interpreter()
+    {
+        globals.define("clock", new BeeCallable() {
+            @Override
+            public int arity(){return 0;}
+
+            @Override
+            public Object call(Interpreter interpreter, List<Object> arguments) {
+                return (double)System.currentTimeMillis() / 1000.0;
+            }
+
+            @Override
+            public String toString(){return "<native function";}
+        });
+    }
 
     void interpret(List<Stmt> statements)
     {
@@ -31,6 +47,22 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
     public Object visitLiteralExpr(Expr.Literal expr)
     {
         return expr.value;
+    }
+
+    @Override
+    public Object visitLogicalExpr(Expr.Logical expr)
+    {
+        Object left = evaluate(expr.left);
+        if (expr.operator.type == TokenType.OR)
+        {
+            if (isTruthy(left))
+                return left;
+        }else
+        {
+            if (!isTruthy(left))
+                return left;
+        }
+        return evaluate(expr.right);
     }
 
     /**
@@ -124,6 +156,31 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
         return null;
     }
 
+    @Override
+    public Object visitCallExpr(Expr.Call expr)
+    {
+        // evaluate the expression for the callee.
+        Object callee = evaluate(expr.callee);
+
+        List<Object> arguments = new ArrayList<>();
+        for (Expr argument : expr.arguments)
+        {
+            arguments.add(evaluate(argument));
+        }
+
+        if (!(callee instanceof BeeCallable))
+            throw new RuntimeError(expr.paren, "Can only call functions and classes.");
+        
+        //cast the callee to a BeeCallable
+        BeeCallable function = (BeeCallable)callee;
+        
+        if (arguments.size() != function.arity())
+            throw new RuntimeError(expr.paren, "Expected " + function.arity() + " arguments "
+                                    + "but got " + arguments.size() + ".");
+        //perform the call
+        return function.call(this, arguments);
+    }
+
     private void checkNumberOperands(Token operator, Object left, Object right)
     {
         if (left instanceof Double && right instanceof Double)
@@ -192,6 +249,27 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
     }
 
     @Override
+    public Void visitFunctionStmt(Stmt.Function stmt)
+    {
+        BeeFunction function = new BeeFunction(stmt, environment);
+        environment.define(stmt.name.lexeme, function);
+        return null;
+    }
+
+    @Override
+    public Void visitIfStmt(Stmt.If stmt)
+    {
+        if (isTruthy(evaluate(stmt.condition)))
+        {
+            execute(stmt.thenBranch);
+        }else if (null != stmt.elseBranch)
+        {
+            execute(stmt.elseBranch);
+        }
+        return null;
+    }
+
+    @Override
     public Void visitPrintStmt(Stmt.Print stmt)
     {
         Object value = evaluate(stmt.expression);
@@ -199,6 +277,16 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
         return null;
     }
     
+    @Override
+    public Void visitReturnStmt(Stmt.Return stmt)
+    {
+        Object value = null;
+        if (null != stmt.value)
+            value = evaluate(stmt.value);
+        
+        throw new Return(value);
+    }
+
     @Override
     public Void visitVarStmt(Stmt.Var stmt)
     {
@@ -208,6 +296,16 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
             value = evaluate(stmt.initializer);
         }
         environment.define(stmt.name.lexeme, value);
+        return null;
+    }
+
+    @Override
+    public Void visitWhileStmt(Stmt.While stmt)
+    {
+        while(isTruthy(evaluate(stmt.condition)))
+        {
+            execute(stmt.body);
+        }
         return null;
     }
 
