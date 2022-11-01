@@ -119,9 +119,6 @@ public class Parser
         {
             // parses parameters as long as we find commas to separate them.
             do {
-                // if(parameters.size() >= 255)
-                //     error(peek(), "Can't have more that 255 parameters.");
-                
                 parameters.add(consume(IDENTIFIER, "Expect parameter name."));
             }while(match(COMMA));
 
@@ -230,10 +227,8 @@ public class Parser
             }
 
             //report an error if left-hand side isn't a valid assignment target.
-            //
             error(equals, "Invalid assignment target");
         }
-
         return expr;
     }
 
@@ -359,13 +354,13 @@ public class Parser
      */
     private Expr unary()
     {
-        if (match(BANG, MINUS, DECREM, INCREM))
+        if (match(BANG, MINUS))
         {
             Token operator = previous();
             Expr right = unary();
             return new Expr.Unary(operator, right);
         }
-    
+
         return call();
     }
 

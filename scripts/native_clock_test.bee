@@ -1,3 +1,5 @@
+println "";
+println "********* NATIVE FUNCTION clock() TEST *********";
 // test case for native function clock()
 var start = clock();
 for(var i = 0; i < 10000000; i = i + 1){}

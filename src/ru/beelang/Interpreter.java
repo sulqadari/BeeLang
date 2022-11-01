@@ -207,13 +207,6 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
                 return (!isTruthy(right));  // logical NOT
             case MINUS:
                 checkNumberOperand(expr.operator, right);
-                return (- (double)right);   // negate
-            case INCREM:
-                checkNumberOperand(expr.operator, right);
-                return (double)right + (double)1;   // increment
-            case DECREM:
-                checkNumberOperand(expr.operator, right);
-                return (double)right - (double)1;   // increment
         }
 
         return null;
