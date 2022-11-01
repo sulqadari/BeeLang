@@ -75,7 +75,8 @@ abstract class Stmt {
     }
 
     static class Print extends Stmt {
-        Print(Expr expression) {
+        Print(Token type, Expr expression) {
+            this.type = type;
             this.expression = expression;
         }
 
@@ -84,6 +85,7 @@ abstract class Stmt {
             return visitor.visitPrintStmt(this);
         }
 
+        final Token type;
         final Expr expression;
     }
 

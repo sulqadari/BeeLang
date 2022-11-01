@@ -1,0 +1,20 @@
+// test case for native function clock()
+var start = clock();
+for(var i = 0; i < 10000000; i = i + 1){}
+var end = clock();
+print "10000000 cycles, elapsed time: ";
+println end - start;
+
+start = clock();
+for(var i = 0; i < 20000000; i = i + 1){}
+end = clock();
+print "20000000 cycles, elapsed time: ";
+println end - start;
+
+
+start = clock();
+for(var i = 0; i < 30000000; i = i + 1){}
+end = clock();
+print "30000000 cycles, elapsed time: ";
+println end - start;
+

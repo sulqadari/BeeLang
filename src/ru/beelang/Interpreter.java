@@ -1,6 +1,10 @@
 package ru.beelang;
 
 import java.util.List;
+
+import ru.beelang.nativeFuncs.BeeCallable;
+import ru.beelang.nativeFuncs.Clock;
+
 import java.util.ArrayList;
 
 public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
@@ -12,18 +16,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
 
     Interpreter()
     {
-        globals.define("clock", new BeeCallable() {
-            @Override
-            public int arity(){return 0;}
-
-            @Override
-            public Object call(Interpreter interpreter, List<Object> arguments) {
-                return (double)System.currentTimeMillis() / 1000.0;
-            }
-
-            @Override
-            public String toString(){return "<native function";}
-        });
+        globals.define("clock", new Clock(), null);
     }
 
     void interpret(List<Stmt> statements)
@@ -41,74 +34,35 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
     }
 
     /**
-     * Converts a literal tree node into a runtime value.
+     * Helper method analogue to evaluate() one, which
+     * handles the Statements.
+     * @param stmt
      */
-    @Override
-    public Object visitLiteralExpr(Expr.Literal expr)
+    private void execute(Stmt stmt)
     {
-        return expr.value;
+        stmt.accept(this);
     }
 
-    @Override
-    public Object visitLogicalExpr(Expr.Logical expr)
-    {
-        Object left = evaluate(expr.left);
-        if (expr.operator.type == TokenType.OR)
-        {
-            if (isTruthy(left))
-                return left;
-        }else
-        {
-            if (!isTruthy(left))
-                return left;
-        }
-        return evaluate(expr.right);
-    }
-
+    // ======================================================= //
+    // ============== Expr.Visitor implementation ============ //
+    // ======================================================= //
     /**
-     * Evaluates Unary expressions.<p/>
-     * Unlike Grouping, unary expression evaluates the operand expression,
-     * then apply unary operator itself to the result of that.<p/>
-     * There are two different unary expressions, identified by the type of the operator
-     * token.
-     * 
+     * Evaluates the right-hand side to get the value,
+     * then stores it in the named variable.<p/>
+     * This method returns the assigned value because assignment
+     * is an expression that can be nested inside other expressions.<p/>
+     * <code>var a = 1;</code>
+     * <code>print a = 2;</code>
      */
     @Override
-    public Object visitUnaryExpr(Expr.Unary expr)
+    public Object visitAssignExpr(Expr.Assign expr)
     {
-        Object right = evaluate(expr.right);
-
-        switch(expr.operator.type)
-        {
-            case BANG:
-                return (!isTruthy(right));  // logical NOT
-            case MINUS:
-                checkNumberOperand(expr.operator, right);
-                return (- (double)right);   // negate
-        }
-
-        return null;
+        Object value = evaluate(expr.value);
+        environment.assign(expr.name, value);
+        return value;
     }
 
-    @Override
-    public Object visitVariableExpr(Expr.Variable expr)
-    {
-        return environment.get(expr.name);
-    }
-
-    /**
-     * the node retrieved as a result of using explicit parentheses in an expression.<p/>
-     * A grouping node has a reference to an inner
-     * node for the expression contained inside the parentheses.
-     * To evaluate the grouping expression itself, we recursively
-     * evaluate that subexpression and return it.
-     */
-    @Override
-    public Object visitGroupingExpr(Expr.Grouping expr)
-    {
-        return evaluate(expr.expression);
-    }
-
+    
     @Override
     public Object visitBinaryExpr(Expr.Binary expr)
     {
@@ -156,6 +110,20 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
         return null;
     }
 
+    /**
+     * Helper method used in <code>visitBinaryExpr</code> method.
+     * @param operator
+     * @param left
+     * @param right
+     */
+    private void checkNumberOperands(Token operator, Object left, Object right)
+    {
+        if (left instanceof Double && right instanceof Double)
+            return;
+    
+        throw new RuntimeError(operator, "Operands must be numbers.");
+    }
+
     @Override
     public Object visitCallExpr(Expr.Call expr)
     {
@@ -178,15 +146,97 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
             throw new RuntimeError(expr.paren, "Expected " + function.arity() + " arguments "
                                     + "but got " + arguments.size() + ".");
         //perform the call
-        return function.call(this, arguments);
+        return function.call(this, arguments, expr.paren);
     }
 
-    private void checkNumberOperands(Token operator, Object left, Object right)
+    /**
+     * the node retrieved as a result of using explicit parentheses in an expression.<p/>
+     * A grouping node has a reference to an inner
+     * node for the expression contained inside the parentheses.
+     * To evaluate the grouping expression itself, we recursively
+     * evaluate that subexpression and return it.
+     */
+    @Override
+    public Object visitGroupingExpr(Expr.Grouping expr)
     {
-        if (left instanceof Double && right instanceof Double)
-            return;
+        return evaluate(expr.expression);
+    }
     
-        throw new RuntimeError(operator, "Operands must be numbers.");
+
+    /**
+     * Converts a literal tree node into a runtime value.
+     */
+    @Override
+    public Object visitLiteralExpr(Expr.Literal expr)
+    {
+        return expr.value;
+    }
+
+    @Override
+    public Object visitLogicalExpr(Expr.Logical expr)
+    {
+        Object left = evaluate(expr.left);
+        if (TokenType.OR == expr.operator.type)
+        {
+            if (isTruthy(left))
+                return left;
+        }else
+        {
+            if (!isTruthy(left))
+                return left;
+        }
+        return evaluate(expr.right);
+    }
+
+    /**
+     * Evaluates Unary expressions.<p/>
+     * Unlike Grouping, unary expression evaluates the operand expression,
+     * then apply unary operator itself to the result of that.<p/>
+     * There are two different unary expressions, identified by the type of the operator
+     * token.
+     * 
+     */
+    @Override
+    public Object visitUnaryExpr(Expr.Unary expr)
+    {
+        Object right = evaluate(expr.right);
+
+        switch(expr.operator.type)
+        {
+            case BANG:
+                return (!isTruthy(right));  // logical NOT
+            case MINUS:
+                checkNumberOperand(expr.operator, right);
+                return (- (double)right);   // negate
+            case INCREM:
+                checkNumberOperand(expr.operator, right);
+                return (double)right + (double)1;   // increment
+            case DECREM:
+                checkNumberOperand(expr.operator, right);
+                return (double)right - (double)1;   // increment
+        }
+
+        return null;
+    }
+
+    /**
+     * Helper method used in <code>visitUnaryExpr()</code> method to assert Double value.<p/>
+     * Throws BeeLang-specific runtime exception.
+     * @param operator
+     * @param operand
+     */
+    private void checkNumberOperand(Token operator, Object operand)
+    {
+        if (operand instanceof Double)
+            return;
+        
+        throw new RuntimeError(operator, "Operand must be a number.");
+    }
+
+    @Override
+    public Object visitVariableExpr(Expr.Variable expr)
+    {
+        return environment.get(expr.name);
     }
     
     /**
@@ -200,15 +250,9 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
         return expr.accept(this);
     }
 
-    /**
-     * Helper method analogue to evaluate() one, which
-     * handles the Statements.
-     * @param stmt
-     */
-    private void execute(Stmt stmt)
-    {
-        stmt.accept(this);
-    }
+    // ======================================================= //
+    // ============== Stmt.Visitor implementation ============ //
+    // ======================================================= //
 
     @Override
     public Void visitBlockStmt(Stmt.Block stmt)
@@ -218,6 +262,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
     }
 
     /**
+     * Helper method used in <code>visitBlockStmt()</code> method.<p/>
      * executes a list of statements in the context of a given environment.<p/>
      * To execute code within a given scope, this method updates the interpreter's
      * environment field, visits all of the statements,
@@ -252,7 +297,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
     public Void visitFunctionStmt(Stmt.Function stmt)
     {
         BeeFunction function = new BeeFunction(stmt, environment);
-        environment.define(stmt.name.lexeme, function);
+        environment.define(stmt.name.lexeme, function, stmt.name);
         return null;
     }
 
@@ -273,7 +318,11 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
     public Void visitPrintStmt(Stmt.Print stmt)
     {
         Object value = evaluate(stmt.expression);
-        System.out.println(stringify(value));
+
+        if (TokenType.PRINTLN == stmt.type.type)
+            System.out.println(stringify(value));
+        else
+            System.out.print(stringify(value));
         return null;
     }
     
@@ -295,7 +344,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
         {
             value = evaluate(stmt.initializer);
         }
-        environment.define(stmt.name.lexeme, value);
+        environment.define(stmt.name.lexeme, value, stmt.name);
         return null;
     }
 
@@ -307,35 +356,6 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
             execute(stmt.body);
         }
         return null;
-    }
-
-    /**
-     * Evaluates the right-hand side to get the value,
-     * then stores it in the named variable.<p/>
-     * This method returns the assigned value because assignment
-     * is an expression that can be nested inside other expressions.<p/>
-     * <code>var a = 1;</code>
-     * <code>print a = 2;</code>
-     */
-    @Override
-    public Object visitAssignExpr(Expr.Assign expr)
-    {
-        Object value = evaluate(expr.value);
-        environment.assign(expr.name, value);
-        return value;
-    }
-
-    /**
-     * Throws BeeLang-specific runtime exception.
-     * @param operator
-     * @param operand
-     */
-    private void checkNumberOperand(Token operator, Object operand)
-    {
-        if (operand instanceof Double)
-            return;
-        
-        throw new RuntimeError(operator, "Operand must be a number.");
     }
 
     private boolean isTruthy(Object object)

@@ -9,7 +9,7 @@ import static ru.beelang.TokenType.*;
 
 /**
  * <p>Scans the raw input string of code.</p>
- * Actualy this class not only scans the input for correct value
+ * Actualy this class not only scans and validates the input,
  * but also performs functionality of a <code>Lexer</code> to product the tokens.
  * <p>These tokens will be used by <code>Parser</code> to generate appropriate code
  * representation. After that the <code>Interpreter</code> will consume this representation.</p>
@@ -23,6 +23,7 @@ public class Scanner
         keywords.put("var",    VAR);
         keywords.put("return", RETURN);
         keywords.put("print",  PRINT);
+        keywords.put("println",  PRINTLN);
         keywords.put("fun",    FUN);
         keywords.put("class",  CLASS);
         keywords.put("super",  SUPER);
@@ -80,8 +81,10 @@ public class Scanner
             case '}': addToken(RIGHT_BRACE); break;
             case ',': addToken(COMMA); break;
             case '.': addToken(DOT); break;
-            case '-': addToken(MINUS); break;
-            case '+': addToken(PLUS); break;
+            //case '-': addToken(MINUS); break;
+            //case '+': addToken(PLUS); break;
+            case '-': addToken(match('-') ? DECREM : MINUS); break;
+            case '+': addToken(match('+') ? INCREM : PLUS); break;
             case ';': addToken(SEMICOLON); break;
             case '*': addToken(STAR); break;
             case '!': addToken(match('=') ? BANG_EQUAL : BANG); break;
