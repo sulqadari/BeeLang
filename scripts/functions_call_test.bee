@@ -1,0 +1,38 @@
+println "";
+println "********* FUNCTIONS CALL TEST *********";
+
+fun fun1(msg)
+{
+	println msg;
+}
+
+fun1("fun1() global scope.");
+
+{
+	fun1("fun1() scope.");
+	fun fun1(msg)
+	{
+		var i = 42;
+		println msg;
+		return i;
+	}
+	var i = fun1("initializing 'i' variable");
+	print "'i' value is: ";
+	println i;
+}
+
+var i = fun1("initializing 'i' variable again in global scope.");
+print "'i' value is: ";
+println i;
+
+var a = "global";
+{
+	fun showA()
+	{
+		println a;
+	}
+	
+	showA();
+	var a = "block";
+	showA();
+}

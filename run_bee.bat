@@ -1,13 +1,14 @@
 @echo off
 
 chcp 1251
-set scrpt_path=%~dp0scripts\
-set sct=%scrpt_path%print_test.bee
-set sct=%scrpt_path%native_clock_test.bee;%sct%
-set sct=%~dp0scripts\equality_test.bee;%sct%
-set sct=%~dp0scripts\environments_test.bee;%sct%
-set sct=%~dp0scripts\parentheses_test.bee;%sct%
-REM set sct=%~dp0scripts\increm_test.bee;%sct%
+set src=%~dp0scripts\
 
-java -cp bin ru.beelang.Main %sct%
+rem set input=%src%print_test.bee;
+rem set input=%src%native_clock_test.bee;%input%
+rem set input=%src%equality_test.bee;%input%
+rem set input=%src%environments_test.bee;%input%
+rem set input=%src%parentheses_test.bee;%input%
+set input=%src%functions_call_test.bee;%input%
+
+java -cp bin ru.beelang.Main %input%
 pause

@@ -46,32 +46,25 @@ lvl = countNest(lvl);
 
 assertEqual(lvl, 7);
 
-fun countNest(lvl)
-{
-	print "nesting level: ";
-	println lvl;
-	return lvl + 1;
-}
-
 // Here global variable is hidden by the inner variable with the same name.
 // Resulting value should be 2
 
 println "Test assumed successful if resulting value of the variable equals 2.";
-var lvl = 0;
+var lvl_1 = 0;
 
-lvl = countNest(lvl);
+lvl_1 = countNest(lvl_1);
 {
-	lvl = countNest(lvl);
+	lvl_1 = countNest(lvl_1);
 	{
-		var lvl = countNest(lvl);
+		var lvl_1 = countNest(lvl_1);
 		{
-			lvl = countNest(lvl);
+			lvl_1 = countNest(lvl_1);
 			{
-				lvl = countNest(lvl);
+				lvl_1 = countNest(lvl_1);
 				{
-					lvl = countNest(lvl);
+					lvl_1 = countNest(lvl_1);
 					{
-						lvl = countNest(lvl);
+						lvl_1 = countNest(lvl_1);
 					}
 				}
 			}
@@ -79,4 +72,4 @@ lvl = countNest(lvl);
 	}
 }
 
-assertEqual(lvl, 2);
+assertEqual(lvl_1, 2);
