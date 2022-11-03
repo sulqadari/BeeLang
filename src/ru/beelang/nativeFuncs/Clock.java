@@ -16,7 +16,7 @@ public class Clock implements BeeCallable
         @Override
         public Object call(Interpreter interpreter, List<Object> arguments, Token token)
         {
-            return (double)System.currentTimeMillis() / 1000.0;
+            return (int)System.currentTimeMillis() / 1000;
         }
 
         @Override

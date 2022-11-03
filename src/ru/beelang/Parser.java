@@ -25,6 +25,7 @@ import static ru.beelang.TokenType.*;
  * <li>classDecl      -> <code>"class" IDENTIFIER ("<" IDENTIFIER)? "{" function* "}";</code></li>
  * <li>funDecl        -> <code>"fun" function;</code></li>
  * <li>varDecl        -> <code>"var" IDENTIFIER ("=" expression)? ";";</code></li>
+ * <li>arrDecl        -> <code>"arr" IDENTIFIER ("[" "]" "{" NUMBER+ "}") | ("[" NUMBER "]" "{" NUMBER* "}") </code></li>";"
  * </ul>
  * 
  * Statements:<p/>
@@ -55,7 +56,9 @@ import static ru.beelang.TokenType.*;
  * <li>factor         -> <code>unary ( ( "/" | "*" ) unary )* ;</code></li>
  * <li>unary          -> <code>( "!" | "-" ) unary | call ;</code></li>
  * <li>call           -> <code>primary ( "(" arguments? ")" | "." IDENTIFIER )* ;</code></li>
+ * <li>increment      -> <code>primary (IDENTIFIER ("++" | "--")) ;</code></li>
  * <li>primary        -> <code>"true" | "false" | "nil" | "this" | NUMBER | STRING | IDENTIFIER | "(" expression ")" | "super" "." IDENTIFIER ;</code></li>
+ * 
  * </ul>
  * 
  * Utility rules:<p/>
@@ -99,6 +102,8 @@ public class Parser
                 return function("function");
             if (match(VAR))
                 return varDeclaration();
+            // if (match(ARR))
+            //     return arrDeclaration();
             
             return statement();
         }catch(ParseError error)
@@ -148,6 +153,15 @@ public class Parser
         consume(SEMICOLON, "Expect ';' after variable declaration.");
         return new Stmt.Var(name, initializer);
     }
+
+    // private Stmt arrDeclaration()
+    // {
+    //     // retrieve current token and move to subsequent one
+    //     Token name = consume(IDENTIFIER, "Expect array name.");
+    //     consume(LEFT_SQR_BRACKET, "Expect left square bracket.");
+    //     Expr size = expression();
+    //     consume(RIGHT_SQR_BRACKET, "Expect right square bracket.");
+    // }
 
     /**
      * Parses a statements.
@@ -368,13 +382,31 @@ public class Parser
 
     private Expr call()
     {
-        Expr expr = primary();
+        Expr expr = increment();
         while(true)
         {
             if (match(LEFT_PAREN))
                 expr = finishCall(expr);
             else
                 break;
+        }
+
+        return expr;
+    }
+
+    private Expr increment()
+    {
+        Expr expr = primary();
+
+        if (match(INCREMENT, DECREMENT))
+        {
+            Token sign = previous();
+
+            if (!(expr instanceof Expr.Variable))
+                error(sign, "Invalid increment target");
+            
+            Token name = ((Expr.Variable)expr).name;
+            return new Expr.Increment(name, sign);
         }
 
         return expr;
@@ -665,6 +697,11 @@ public class Parser
      */
     private Token peek() {
         return tokens.get(current);
+    }
+
+    private Token peekNext()
+    {
+        return tokens.get(current + 1);
     }
 
     /**

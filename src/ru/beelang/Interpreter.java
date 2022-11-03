@@ -60,6 +60,24 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
     // ============== Expr.Visitor implementation ============ //
     // ======================================================= //
     
+    @Override
+    public Object visitIncrementExpr(Expr.Increment expr)
+    {
+        Object currVal = environment.get(expr.name);
+
+        if (!(currVal instanceof Integer))
+            throw new RuntimeError(expr.name, "Operand must be of type int.");
+        
+        if (expr.sign.type == TokenType.INCREMENT)
+            currVal = ((int)currVal + (int)1);
+        else
+            currVal = ((int)currVal - (int)1);
+        
+        environment.assign(expr.name, currVal);
+
+        return currVal;
+    }
+
     /**
      * Evaluates the right-hand side to get the value,
      * then stores it in the named variable.<p/>
@@ -90,22 +108,22 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
                 return isEqual(left, right);
             case GREATER:
                 checkNumberOperands(expr.operator, left, right);
-                return (double)left > (double)right;
+                return (int)left > (int)right;
             case GREATER_EQUAL:
                 checkNumberOperands(expr.operator, left, right);
-                return (double)left >= (double)right;
+                return (int)left >= (int)right;
             case LESS:
                 checkNumberOperands(expr.operator, left, right);
-                return (double)left < (double)right;
+                return (int)left < (int)right;
             case LESS_EQUAL:
                 checkNumberOperands(expr.operator, left, right);
-                return (double)left <= (double)right;
+                return (int)left <= (int)right;
             case MINUS:
                 checkNumberOperands(expr.operator, left, right);
-                return (double)left - (double)right;
+                return (int)left - (int)right;
             case PLUS:
-                if (left instanceof Double && right instanceof Double)
-                    return (double)left + (double)right;    // add
+                if (left instanceof Integer && right instanceof Integer)
+                    return (int)left + (int)right;    // add
                 
                 if (left instanceof String && right instanceof String)
                     return (String)left + (String)right;    // concat
@@ -113,10 +131,10 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
                 throw new RuntimeError(expr.operator, "Operands must be two numbers or two strings.");
             case SLASH:
                 checkNumberOperands(expr.operator, left, right);
-                return (double)left / (double)right;
+                return (int)left / (int)right;
             case STAR:
                 checkNumberOperands(expr.operator, left, right);
-                return (double)left * (double)right;
+                return (int)left * (int)right;
         }
 
         // Expected to be unreachable.
@@ -299,14 +317,14 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
     // ========================================================= //
 
     /**
-     * Helper method used in <code>visitUnaryExpr()</code> method to assert Double value.<p/>
+     * Helper method used in <code>visitUnaryExpr()</code> method to assert Integer value.<p/>
      * Throws BeeLang-specific runtime exception.
      * @param operator
      * @param operand
      */
     private void checkNumberOperand(Token operator, Object operand)
     {
-        if (operand instanceof Double)
+        if (operand instanceof Integer)
             return;
         
         throw new RuntimeError(operator, "Operand must be a number.");
@@ -320,7 +338,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
      */
     private void checkNumberOperands(Token operator, Object left, Object right)
     {
-        if (left instanceof Double && right instanceof Double)
+        if (left instanceof Integer && right instanceof Integer)
             return;
     
         throw new RuntimeError(operator, "Operands must be numbers.");

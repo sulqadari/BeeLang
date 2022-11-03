@@ -1,0 +1,111 @@
+println ( "");
+println ( "********* INCREMENT TEST *********");
+
+var I = 0;
+print("init value: "); println(I);
+
+I++;
+print("incremented value: "); println(I);
+
+println("increment within while loop:");
+while(I < 10)
+{
+	I++;
+	print(I);print(" ");
+}
+println("");
+
+
+println("decrement within while's condition expression:");
+while(I-- > 00)
+{
+	print(I);print(" ");
+}
+println("");
+
+println("increment within for loop:");
+for( ;I < 10; )
+{
+	I++;
+	print(I);print(" ");
+}
+println("");
+
+println("decrement within for's increment expression:");
+for( ;I > 0; I--)
+{
+	print(I);print(" ");
+}
+println("");
+
+println("inside local scope. I reassigned with '0':");
+{ // distinct scope
+	println("increment:");
+	for(I = 0; I < 10; I++)
+	{
+		print(I);print(" ");
+	}
+	println("");
+	println("decrement:");
+	for(I = 10; I > 0; I--)
+	{
+		print(I);print(" ");
+	}
+}
+println("");
+println("");
+println("Incrementation within println()");
+var a = 0;
+var b = 0;
+print("a = "); println(a);
+print("b = "); println(b);
+
+print("a = "); println(a++);
+print("b = "); println(b++);
+print("a = "); println(a++);
+print("b = "); println(b++);
+
+println("");
+
+print("a = a + b == ");
+a = a + b;
+println(a);
+
+println("weird expressions");
+var c = 0;
+var d = 1;
+var e = 2;
+var f = 3;
+
+print("c = ");
+println(c);
+println(d);
+println(e);
+println(f);
+print("println(c = d++ + e++ + f++) == ");
+println(c = d++ + e++ + f++);
+
+print("c = ");println(c);
+if(c != 25)
+{
+	print("ERROR: "); print(9); print(" expected but found "); println(c);
+}
+
+print("print(a = a+++a+++a+++a) == ");
+println(a = a+++a+++a+++a);
+
+print("a = ");println(a);
+
+if(a != 25)
+{
+	print("ERROR: "); print(25); print(" expected but found "); println(a);
+}
+
+println(a = a++ +b);
+print("a = ");println(a);
+
+println("PASSED");
+
+
+var J = "error";
+J++;

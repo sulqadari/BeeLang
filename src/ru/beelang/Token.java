@@ -26,7 +26,7 @@ public class Token
     /**
      * The value retrieved from the lexeme which is used by the interpreter.
      * <p>As an example consider convertion the <code>lexeme</code> field containg
-     * double value <code>42.5</code> to <code>literal = Double.parseDouble(lexeme)</code></p>
+     * integer value <code>42</code> to <code>literal = Integer.parseInt(lexeme)</code></p>
      */
     final Object literal;
 
