@@ -4,6 +4,8 @@ import java.util.List;
 
 import ru.beelang.nativeFuncs.BeeCallable;
 import ru.beelang.nativeFuncs.Clock;
+import ru.beelang.nativeFuncs.Print;
+import ru.beelang.nativeFuncs.Println;
 
 import java.util.ArrayList;
 
@@ -17,6 +19,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
     Interpreter()
     {
         globals.define("clock", new Clock(), null);
+        globals.define("print", new Print(), null);
+        globals.define("println", new Println(), null);
     }
 
     void interpret(List<Stmt> statements)
@@ -34,8 +38,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
     }
 
     /**
-     * Helper method analogue to evaluate() one, which
-     * handles the Statements.
+     * Helper method analogue to evaluate() one, which handles the Statements.
      * @param stmt
      */
     private void execute(Stmt stmt)
@@ -43,9 +46,20 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
         stmt.accept(this);
     }
 
+    /**
+     * Sends the expression back into the interpreter’s visitor implementation
+     * @param expr
+     * @return
+     */
+    private Object evaluate(Expr expr)
+    {
+        return expr.accept(this);
+    }
+
     // ======================================================= //
     // ============== Expr.Visitor implementation ============ //
     // ======================================================= //
+    
     /**
      * Evaluates the right-hand side to get the value,
      * then stores it in the named variable.<p/>
@@ -61,7 +75,6 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
         environment.assign(expr.name, value);
         return value;
     }
-
     
     @Override
     public Object visitBinaryExpr(Expr.Binary expr)
@@ -106,22 +119,8 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
                 return (double)left * (double)right;
         }
 
-        // Unreachable
+        // Expected to be unreachable.
         return null;
-    }
-
-    /**
-     * Helper method used in <code>visitBinaryExpr</code> method.
-     * @param operator
-     * @param left
-     * @param right
-     */
-    private void checkNumberOperands(Token operator, Object left, Object right)
-    {
-        if (left instanceof Double && right instanceof Double)
-            return;
-    
-        throw new RuntimeError(operator, "Operands must be numbers.");
     }
 
     @Override
@@ -138,13 +137,20 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
 
         if (!(callee instanceof BeeCallable))
             throw new RuntimeError(expr.paren, "Can only call functions and classes.");
-        
+
         //cast the callee to a BeeCallable
         BeeCallable function = (BeeCallable)callee;
-        
-        if (arguments.size() != function.arity())
+
+        if (function.arity() == -1)
+        {
+            // Do nothing. Just skip arity check
+            // because method to be called is a native one and
+            // can accept arguments of variable length.
+        }else if (arguments.size() != function.arity())
+        {
             throw new RuntimeError(expr.paren, "Expected " + function.arity() + " arguments "
                                     + "but got " + arguments.size() + ".");
+        }
         //perform the call
         return function.call(this, arguments, expr.paren);
     }
@@ -161,7 +167,6 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
     {
         return evaluate(expr.expression);
     }
-    
 
     /**
      * Converts a literal tree node into a runtime value.
@@ -212,37 +217,12 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
         return null;
     }
 
-    /**
-     * Helper method used in <code>visitUnaryExpr()</code> method to assert Double value.<p/>
-     * Throws BeeLang-specific runtime exception.
-     * @param operator
-     * @param operand
-     */
-    private void checkNumberOperand(Token operator, Object operand)
-    {
-        if (operand instanceof Double)
-            return;
-        
-        throw new RuntimeError(operator, "Operand must be a number.");
-    }
-
     @Override
     public Object visitVariableExpr(Expr.Variable expr)
     {
         return environment.get(expr.name);
     }
     
-    /**
-     * helper method which simply sends the expression back
-     * into the interpreter’s visitor implementation
-     * @param expr
-     * @return
-     */
-    private Object evaluate(Expr expr)
-    {
-        return expr.accept(this);
-    }
-
     // ======================================================= //
     // ============== Stmt.Visitor implementation ============ //
     // ======================================================= //
@@ -252,31 +232,6 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
     {
         executeBlock(stmt.statements, new Environment(environment));
         return null;
-    }
-
-    /**
-     * Helper method used in <code>visitBlockStmt()</code> method.<p/>
-     * executes a list of statements in the context of a given environment.<p/>
-     * To execute code within a given scope, this method updates the interpreter's
-     * environment field, visits all of the statements,
-     * and then restores the previous value.
-     * @param statements
-     * @param environment
-     */
-    void executeBlock(List<Stmt>statements, Environment environment)
-    {
-        Environment previous = this.environment;
-        
-        try
-        {
-            this.environment = environment;
-            for (Stmt statement : statements)
-                execute(statement);
-        }finally
-        {
-            //restore previous environment even if an exception is thrown.
-            this.environment = previous;
-        }
     }
 
     @Override
@@ -304,18 +259,6 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
         {
             execute(stmt.elseBranch);
         }
-        return null;
-    }
-
-    @Override
-    public Void visitPrintStmt(Stmt.Print stmt)
-    {
-        Object value = evaluate(stmt.expression);
-
-        if (TokenType.PRINTLN == stmt.type.type)
-            System.out.println(stringify(value));
-        else
-            System.out.print(stringify(value));
         return null;
     }
     
@@ -351,6 +294,63 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
         return null;
     }
 
+    // ========================================================= //
+    // ======================== Helpers ======================== //
+    // ========================================================= //
+
+    /**
+     * Helper method used in <code>visitUnaryExpr()</code> method to assert Double value.<p/>
+     * Throws BeeLang-specific runtime exception.
+     * @param operator
+     * @param operand
+     */
+    private void checkNumberOperand(Token operator, Object operand)
+    {
+        if (operand instanceof Double)
+            return;
+        
+        throw new RuntimeError(operator, "Operand must be a number.");
+    }
+
+    /**
+     * Helper method used in <code>visitBinaryExpr</code> method.
+     * @param operator
+     * @param left
+     * @param right
+     */
+    private void checkNumberOperands(Token operator, Object left, Object right)
+    {
+        if (left instanceof Double && right instanceof Double)
+            return;
+    
+        throw new RuntimeError(operator, "Operands must be numbers.");
+    }
+
+    /**
+     * Helper method used in <code>visitBlockStmt()</code> method.<p/>
+     * executes a list of statements in the context of a given environment.<p/>
+     * To execute code within a given scope, this method updates the interpreter's
+     * environment field, visits all of the statements,
+     * and then restores the previous value.
+     * @param statements
+     * @param environment
+     */
+    void executeBlock(List<Stmt>statements, Environment environment)
+    {
+        Environment previous = this.environment;
+        
+        try
+        {
+            this.environment = environment;
+            for (Stmt statement : statements)
+                execute(statement);
+        }finally
+        {
+            //restore previous environment even if an exception is thrown.
+            this.environment = previous;
+        }
+    }
+
     private boolean isTruthy(Object object)
     {
         if (object == null)
@@ -377,22 +377,5 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
             return false;
     
         return a.equals(b);
-    }
-
-    private String stringify(Object object)
-    {
-        if (null == object)
-            return "nil";
-        
-        if (object instanceof Double)
-        {
-            String text = object.toString();
-            if(text.endsWith(".0"))
-            {
-                text = text.substring(0, text.length() - 2);
-            }
-            return text;
-        }
-        return object.toString();
     }
 }

@@ -1,22 +1,46 @@
-println "";
-println "********* NATIVE FUNCTION clock() TEST *********";
+println ( "");
+println ( "********* NATIVE FUNCTION clock() TEST *********");
 // test case for native function clock()
 var start = clock();
 for(var i = 0; i < 10000000; i = i + 1){}
 var end = clock();
-print "10000000 cycles, elapsed time: ";
-println end - start;
+
+print ("10000000 cycles, elapsed time: ");
+println ( end - start);
 
 start = clock();
 for(var i = 0; i < 20000000; i = i + 1){}
 end = clock();
-print "20000000 cycles, elapsed time: ";
-println end - start;
+
+print ("20000000 cycles, elapsed time: ");
+println ( end - start);
 
 
-start = clock();
-for(var i = 0; i < 30000000; i = i + 1){}
-end = clock();
-print "30000000 cycles, elapsed time: ";
-println end - start;
+println ("");
+println ("********* NATIVE FUNCTIONS print() AND println() TEST *********");
+
+// Test case for correcntess of the print and println statements
+
+println ( "test message");
+println ( "test" + "message");
+
+println ( 1);
+println ( "");
+println ( true);
+println ( false);
+
+var num = 42;
+println ( num);
+println ( num + num);
+println ( num);
+
+var str = "42";
+println ( str);
+println ( str + str);
+println ( str);
+
+print ("test");
+println ( " message");
+
+println("") ;
 

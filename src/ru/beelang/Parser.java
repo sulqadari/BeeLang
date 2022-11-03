@@ -97,7 +97,7 @@ public class Parser
         {
             if (match(FUN))
                 return function("function");
-            if (match(VAR)) // if parser encountered with "var" keyword
+            if (match(VAR))
                 return varDeclaration();
             
             return statement();
@@ -134,18 +134,17 @@ public class Parser
 
     private Stmt varDeclaration()
     {
-        //retrieve current token and move to subsequent one
+        // retrieve current token and move to subsequent one
         Token name = consume(IDENTIFIER, "Expect variable name.");
-        Expr initializer = null;
         
-        // assignment (=) is expected.
-        // if execution flow wouldn't enter this scope, then
-        // it is likely an exception will be thrown at the consume(SEMICOLON, ...) step
+        Expr initializer = null;
+        // assignment (=) is expected. Otherwise, uninitialized declaration is expected.
         if (match(EQUAL))
         {
             initializer = expression();
         }
 
+        // declaration without initialization.
         consume(SEMICOLON, "Expect ';' after variable declaration.");
         return new Stmt.Var(name, initializer);
     }
@@ -161,12 +160,6 @@ public class Parser
         
         if (match(IF))
             return ifStatement();
-        
-        if (match(PRINT))
-            return printStatement();
-        
-        if (match(PRINTLN))
-            return printStatement();
         
         if (match(RETURN))
             return returnStatement();
@@ -204,7 +197,9 @@ public class Parser
      * Handles assignment expressions (l-value statements).<p/>
      * The trick is that right before we create the assignment expression node,
      * we look at the left-hand side expression and figure out what kind of assignment
-     * target it is. We convert the r-value expression node into an l-value representation.
+     * target it is. We convert the r-value expression node into an l-value representation.<p/>
+     * This means we can parse the left-hand side as <i>if it were</i> an expression and then
+     * after the fact produce a syntax tree that turns it into an assignment target.
      * 
      * @return
      */
@@ -220,8 +215,15 @@ public class Parser
             // assignment() to parse the right-hand side.
             Expr value = assignment();
 
+            // figure out what kind of assignment target it is and
+            // convert the r-value expression node into an l-value representation.
             if (expr instanceof Expr.Variable)
             {
+                // This conversion works because it turns out that every valid
+                // assignment target happens to also be valid syntax as a normal expression.
+                // Consider a complex field assignment like:
+                // newPoint(x + 2, 0).y = 3;
+                // newPoint(x + 2, 0).y;
                 Token name = ((Expr.Variable)expr).name;
                 return new Expr.Assign(name, value);
             }
@@ -457,6 +459,7 @@ public class Parser
         // take the condition and the body and build the loop using a primitive while loop
         if (null == condition)
             condition = new Expr.Literal(true); // true for infinite loop
+
         body = new Stmt.While(condition, body);
         
         // if there is an initializer, it runs once before the entire loop
@@ -464,6 +467,15 @@ public class Parser
             body = new Stmt.Block(Arrays.asList(initializer, body));
         
         return body;
+    }
+
+    private Stmt whileStatement()
+    {
+        consume(LEFT_PAREN, "Expect '(' after 'while'");
+        Expr condition = expression();
+        consume(RIGHT_PAREN, "Expect ')' after condition");
+        Stmt body = statement();
+        return new Stmt.While(condition, body);
     }
 
     private Stmt ifStatement()
@@ -483,15 +495,6 @@ public class Parser
         return new Stmt.If(condition, thenBranch, elseBranch);
     }
 
-    private Stmt printStatement()
-    {
-        Token type = previous();
-        Expr value = expression();
-        consume(SEMICOLON, "Expect ';' after value");
-
-        return new Stmt.Print(type, value);
-    }
-
     private Stmt returnStatement()
     {
         Token keyword = previous();
@@ -502,15 +505,6 @@ public class Parser
         
         consume(SEMICOLON, "Expect ';' after return value.");
         return new Stmt.Return(keyword, value);
-    }
-
-    private Stmt whileStatement()
-    {
-        consume(LEFT_PAREN, "Expect '(' after 'while'");
-        Expr condition = expression();
-        consume(RIGHT_PAREN, "Expect ')' after condition");
-        Stmt body = statement();
-        return new Stmt.While(condition, body);
     }
 
     /**
@@ -600,7 +594,6 @@ public class Parser
                 case FOR:
                 case IF:
                 case WHILE:
-                case PRINT:
                 case RETURN:
                     return;
             }

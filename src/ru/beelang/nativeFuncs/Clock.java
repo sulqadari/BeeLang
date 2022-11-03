@@ -22,6 +22,6 @@ public class Clock implements BeeCallable
         @Override
         public String toString()
         {
-            return "<native function";
+            return "<native clock";
         }
 }

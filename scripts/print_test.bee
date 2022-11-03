@@ -1,25 +1,18 @@
-println "";
-println "********* print AND println STATEMENTS TEST *********";
+println ("");
+println ("********* USER DEFINE FUNCTIONS CALL TEST *********");
 
-// Test case for correcntess of the print and println statements
+fun myFun(arg1, arg2)
+{
+	print("inside byFun(): ");
+	println(arg1 + arg2);
+}
 
-println "test message";
-println "test" + "message";
+myFun(1, 2);
 
-println 1;
-println "";
-println true;
-println false;
+fun retFun(arg1, arg2)
+{
+	return arg1 + arg2;
+}
 
-var num = 42;
-println num;
-println num + num;
-println num;
-
-var str = "42";
-println str;
-println str + str;
-println str;
-
-print "test";
-println " message";
+print("retFun(): ");
+println(retFun(1, 2));
