@@ -9,7 +9,7 @@ import static ru.beelang.TokenType.*;
 
 /**
  * <p>Scans the raw input string of code.</p>
- * Actualy this class not only scans the input for correct value
+ * Actualy this class not only scans and validates the input,
  * but also performs functionality of a <code>Lexer</code> to product the tokens.
  * <p>These tokens will be used by <code>Parser</code> to generate appropriate code
  * representation. After that the <code>Interpreter</code> will consume this representation.</p>
@@ -20,9 +20,9 @@ public class Scanner
 
     static {
         keywords = new HashMap<>();
+        keywords.put("arr",    ARR);
         keywords.put("var",    VAR);
         keywords.put("return", RETURN);
-        keywords.put("print",  PRINT);
         keywords.put("fun",    FUN);
         keywords.put("class",  CLASS);
         keywords.put("super",  SUPER);
@@ -80,10 +80,12 @@ public class Scanner
             case '}': addToken(RIGHT_BRACE); break;
             case ',': addToken(COMMA); break;
             case '.': addToken(DOT); break;
-            case '-': addToken(MINUS); break;
-            case '+': addToken(PLUS); break;
             case ';': addToken(SEMICOLON); break;
             case '*': addToken(STAR); break;
+            case '[': addToken(LEFT_SQR_BRACKET); break;
+            case ']': addToken(RIGHT_SQR_BRACKET); break;
+            case '-': addToken(match('-') ? DECREMENT : MINUS); break;
+            case '+': addToken(match('+') ? INCREMENT : PLUS); break;
             case '!': addToken(match('=') ? BANG_EQUAL : BANG); break;
             case '=': addToken(match('=') ? EQUAL_EQUAL : EQUAL); break;
             case '<': addToken(match('=') ? LESS_EQUAL : LESS); break;
@@ -159,9 +161,7 @@ public class Scanner
                 advance();
         }
 
-        //TODO: replace Double with Integer
-        addToken(NUMBER,
-            Double.parseDouble(source.substring(start, current)));
+        addToken(NUMBER, Integer.parseInt(source.substring(start, current)));
     }
 
     private boolean isAlpha(char c)

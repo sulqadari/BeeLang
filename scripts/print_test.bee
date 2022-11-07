@@ -1,0 +1,18 @@
+println ("");
+println ("********* USER DEFINE FUNCTIONS CALL TEST *********");
+
+fun myFun(arg1, arg2)
+{
+	print("inside byFun(): ");
+	println(arg1 + arg2);
+}
+
+myFun(1, 2);
+
+fun retFun(arg1, arg2)
+{
+	return arg1 + arg2;
+}
+
+print("retFun(): ");
+println(retFun(1, 2));

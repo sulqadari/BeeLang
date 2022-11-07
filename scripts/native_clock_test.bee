@@ -1,0 +1,59 @@
+println ( "");
+println ( "********* NATIVE FUNCTION clock() TEST *********");
+
+fun fib(n) {
+  if (n < 2) return n;
+  return fib(n - 1) + fib(n - 2); 
+}
+
+var before = clock();
+
+println(fib(40));
+var after = clock();
+print ("fibo 40, elapsed time: ");
+println(after - before);
+
+// test case for native function clock()
+var start = clock();
+for(var i = 0; i < 10000000; i = i + 1){}
+var end = clock();
+
+print ("10000000 cycles, elapsed time: ");
+println ( end - start);
+
+start = clock();
+for(var i = 0; i < 20000000; i = i + 1){}
+end = clock();
+
+print ("20000000 cycles, elapsed time: ");
+println ( end - start);
+
+
+println ("");
+println ("********* NATIVE FUNCTIONS print() AND println() TEST *********");
+
+// Test case for correcntess of the print and println statements
+
+println ( "test message");
+println ( "test" + "message");
+
+println ( 1);
+println ( "");
+println ( true);
+println ( false);
+
+var num = 42;
+println ( num);
+println ( num + num);
+println ( num);
+
+var str = "42";
+println ( str);
+println ( str + str);
+println ( str);
+
+print ("test");
+println ( " message");
+
+println("") ;
+

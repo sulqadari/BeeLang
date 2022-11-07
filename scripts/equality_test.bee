@@ -1,0 +1,8 @@
+println "";
+println "********* EQUALITY TEST *********";
+// Equality expressions test case
+print "1 == 1 ? ";
+println 1 == 1;
+
+print "2 != 1 ? ";
+println 2 != 1;

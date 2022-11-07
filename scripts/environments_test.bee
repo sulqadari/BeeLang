@@ -1,0 +1,75 @@
+println "";
+println "********* ENVIRONMENTS TEST *********";
+// Increment global variable in each successive nested scopes.
+// Test assumed successful if resulting value of the variable equals 7.
+
+var lvl = 0;
+fun countNest(lvl)
+{
+	print "nesting level: ";
+	println lvl;
+	return lvl + 1;
+}
+
+fun assertEqual(lvl, cs)
+{
+	print "Resulting value: "; println lvl;
+	print "";
+	print "RESULT: ";
+	if (lvl != cs)
+		println "FAILED";
+	else
+		println "PASSED";
+	println "";
+}
+
+println "Test assumed successful if resulting value of the variable equals 7.";
+lvl = countNest(lvl);
+{
+	lvl = countNest(lvl);
+	{
+		lvl = countNest(lvl);
+		{
+			lvl = countNest(lvl);
+			{
+				lvl = countNest(lvl);
+				{
+					lvl = countNest(lvl);
+					{
+						lvl = countNest(lvl);
+					}
+				}
+			}
+		}
+	}
+}
+
+assertEqual(lvl, 7);
+
+// Here global variable is hidden by the inner variable with the same name.
+// Resulting value should be 2
+
+println "Test assumed successful if resulting value of the variable equals 2.";
+var lvl_1 = 0;
+
+lvl_1 = countNest(lvl_1);
+{
+	lvl_1 = countNest(lvl_1);
+	{
+		var lvl_1 = countNest(lvl_1);
+		{
+			lvl_1 = countNest(lvl_1);
+			{
+				lvl_1 = countNest(lvl_1);
+				{
+					lvl_1 = countNest(lvl_1);
+					{
+						lvl_1 = countNest(lvl_1);
+					}
+				}
+			}
+		}
+	}
+}
+
+assertEqual(lvl_1, 2);

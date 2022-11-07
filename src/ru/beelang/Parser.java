@@ -13,24 +13,60 @@ import static ru.beelang.TokenType.*;
  * When the body of the rule contains a nonterminal - a reference
  * to another rule - we call that other rule's method.
  * <p>Precedence table (priority in descendant order)<p/>
- * <ul>
- * <li>expression -> <code>equality;</code></li>
- * <li>equality -> <code>comparison ( ( "!=" | "==" ) comparison )*;</code></li>
- * <li>comparison -> <code>term ( ( ">" | ">=" | "<" | "<=" ) term )*;</code></li>
- * <li>term -> <code>factor ( ( "-" | "+" ) factor )*;</code></li>
- * <li>factor -> <code>unary ( ( "/" | "*" ) unary )*;</code></li>
- * <li>unary -> <code>( "!" | "-" ) unary | primary;</code></li>
- * <li>primary -> <code>NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")";</code></li>
- * </ul>
- * <p>A recursive descent parser is a literal translation of the grammar's rules straight into imperative code.
- * Each rule becomes a function. The body of the rule translates to code roughly like:</p>
  * 
+ * Syntax Grammar:<p/>
+ * <p>program - > declaration* EOF;</p>
+ * 
+ * Declarations:<p/>
+ * A program is a series of declarations, which are the statements that
+ * bind new identifiers or any of the other statement types.
  * <ul>
- * <li>Terminal: <code>Code to match and consume a token</code></li>
- * <li>Nonterminal: <code>Call to that rule's function</code></li>
- * <li>| :<code>if or switch statement</code></li>
- * <li>* or + :<code>loop (while or for)</code></li>
- * <li>? :<code>if statement</code></li>
+ * <li>declaration    -> <code>classDecl | funDecl | varDecl | statement;</code></li>
+ * <li>classDecl      -> <code>"class" IDENTIFIER ("<" IDENTIFIER)? "{" function* "}";</code></li>
+ * <li>funDecl        -> <code>"fun" function;</code></li>
+ * <li>varDecl        -> <code>"var" IDENTIFIER ("=" expression)? ";";</code></li>
+ * <li>arrDecl        -> <code>"arr" IDENTIFIER ("[" "]" "{" NUMBER+ "}") | ("[" NUMBER "]" "{" NUMBER* "}") </code></li>";"
+ * </ul>
+ * 
+ * Statements:<p/>
+ * The remaining statement rules produce side effects, but do not introduce bindings.
+ * <ul>
+ * <li>statement      -> <code>exprStmt | forStmt | ifStmt | printStmt | returnStmt | whileStmt | block ;</code></li>
+ * <li>exprStmt       -> <code>expression ";" ;</code></li>
+ * <li>forStmt        -> <code>"for" "(" ( varDecl | exprStmt | ";" ) expression? ";" expression? ")" statement ;</code></li>
+ * <li>ifStmt         -> <code>"if" "(" expression ")" statement ( "else" statement )? ;</code></li>
+ * <li>printStmt      -> <code>"print" expression ";" ;</code></li>
+ * <li>returnStmt     -> <code>"return" expression? ";" ;</code></li>
+ * <li>whileStmt      -> <code>"while" "(" expression ")" statement ;</code></li>
+ * <li>block          -> <code>"{" declaration* "}" ;</code></li>
+ * </ul>
+ * <p><b>Note</b> that <code>block</code> is a statement rule, but is also used as a nonterminal in
+ * a couple of other rules for things like function bodies.</p>
+ * 
+ * <p>Expressions:</p>
+ * Expressions produce values. We use a separate rule for each precedence level to make it explicit.
+ * <ul>
+ * <li>expression     -> <code>assignment ;</code></li>
+ * <li>assignment     -> <code>( call "." )? IDENTIFIER "=" assignment logic_or ;</code></li>
+ * <li>logic_or       -> <code>logic_and ( "or" logic_and )* ;</code></li>
+ * <li>logic_and      -> <code>equality ( "and" equality )* ;</code></li>
+ * <li>equality       -> <code>comparison ( ( "!=" | "==" ) comparison )* ;</code></li>
+ * <li>comparison     -> <code>term ( ( ">" | ">=" | "<" | "<=" ) term )* ;</code></li>
+ * <li>term           -> <code>factor ( ( "-" | "+" ) factor )* ;</code></li>
+ * <li>factor         -> <code>unary ( ( "/" | "*" ) unary )* ;</code></li>
+ * <li>unary          -> <code>( "!" | "-" ) unary | call ;</code></li>
+ * <li>call           -> <code>primary ( "(" arguments? ")" | "." IDENTIFIER )* ;</code></li>
+ * <li>increment      -> <code>primary (IDENTIFIER ("++" | "--")) ;</code></li>
+ * <li>primary        -> <code>"true" | "false" | "nil" | "this" | NUMBER | STRING | IDENTIFIER | "(" expression ")" | "super" "." IDENTIFIER ;</code></li>
+ * 
+ * </ul>
+ * 
+ * Utility rules:<p/>
+ * Reusable helper rules.
+ * <ul>
+ * <li>function       -> <code>IDENTIFIER "(" parameters? ")" block ;</code></li>
+ * <li>parameters     -> <code>IDENTIFIER ( "," IDENTIFIER )* ;</code></li>
+ * <li>arguments      -> <code>expression ( "," expression )* ;</code></li>
  * </ul>
  */
 public class Parser
@@ -64,8 +100,10 @@ public class Parser
         {
             if (match(FUN))
                 return function("function");
-            if (match(VAR)) // if parser encountered with "var" keyword
+            if (match(VAR))
                 return varDeclaration();
+            // if (match(ARR))
+            //     return arrDeclaration();
             
             return statement();
         }catch(ParseError error)
@@ -73,159 +111,6 @@ public class Parser
             synchronize();
             return null;
         }
-    }
-
-    /**
-     * Parses a statements.
-     * @return
-     */
-    private Stmt statement()
-    {
-        if (match(FOR))
-            return forStatement();
-        
-        if (match(IF))
-            return ifStatement();
-        
-        if (match(PRINT))
-            return printStatement();
-        
-        if (match(RETURN))
-            return returnStatement();
-        
-        if (match(WHILE))
-            return whileStatement();
-        
-        if (match(LEFT_BRACE))
-            return new Stmt.Block(block());
-        
-        return expressionStatement();
-    }
-
-    /**
-     * Desugared implementation which means
-     * there is no dedicated syntax tree provided, instead
-     * 'for loop' is constructed based on 'while' loop.
-     * @return
-     */
-    private Stmt forStatement()
-    {
-        consume(LEFT_PAREN, "Expect '(' after 'for'.");
-        
-        // initializer
-        Stmt initializer;
-        if (match(SEMICOLON))
-            initializer = null;
-        else if (match(VAR))
-            initializer = varDeclaration();
-        else
-            initializer = expressionStatement();
-        
-
-        // condition
-        Expr condition = null;
-        if (!check(SEMICOLON))
-            condition = expression();
-        
-        consume(SEMICOLON, "Expect ';' after loop condition.");
-
-        // increment
-        Expr increment = null;
-        if (!check(RIGHT_PAREN))
-            increment = expression();
-        
-        consume(RIGHT_PAREN, "Expect ')' after for clause.");
-
-        // body
-        Stmt body = statement();
-
-        // The increment executes after the body in each iteration of the loop.
-        if (null != increment)
-            body = new Stmt.Block(Arrays.asList(body, new Stmt.Expression(increment)));
-
-        // take the condition and the body and build the loop using a primitive while loop
-        if (null == condition)
-            condition = new Expr.Literal(true); // true for infinite loop
-        body = new Stmt.While(condition, body);
-        
-        // if there is an initializer, it runs once before the entire loop
-        if (null != initializer)
-            body = new Stmt.Block(Arrays.asList(initializer, body));
-        
-        return body;
-    }
-
-    private Stmt ifStatement()
-    {
-        consume(LEFT_PAREN, "Expect '(' after 'if'.");
-        Expr condition = expression();
-        consume(RIGHT_PAREN, "Expect ')' after if condition.");
-        
-        Stmt thenBranch = statement();
-        Stmt elseBranch = null;
-        
-        if (match(ELSE))
-        {
-            elseBranch = statement();
-        }
-
-        return new Stmt.If(condition, thenBranch, elseBranch);
-    }
-
-    private Stmt printStatement()
-    {
-        Expr value = expression();
-        consume(SEMICOLON, "Expect ';' after value");
-
-        return new Stmt.Print(value);
-    }
-
-    private Stmt returnStatement()
-    {
-        Token keyword = previous();
-        Expr value = null;
-
-        if(!check(SEMICOLON))
-            value = expression();
-        
-        consume(SEMICOLON, "Expect ';' after return value.");
-        return new Stmt.Return(keyword, value);
-    }
-
-    private Stmt varDeclaration()
-    {
-        //retrieve current token and move to subsequent one
-        Token name = consume(IDENTIFIER, "Expect variable name.");
-        Expr initializer = null;
-        
-        // assignment (=) is expected.
-        // if execution flow wouldn't enter this scope, then
-        // it is likely an exception will be thrown at the consume(SEMICOLON, ...) step
-        if (match(EQUAL))
-        {
-            initializer = expression();
-        }
-
-        consume(SEMICOLON, "Expect ';' after variable declaration.");
-        return new Stmt.Var(name, initializer);
-    }
-
-    private Stmt whileStatement()
-    {
-        consume(LEFT_PAREN, "Expect '(' after 'while'");
-        Expr condition = expression();
-        consume(RIGHT_PAREN, "Expect ')' after condition");
-        Stmt body = statement();
-        return new Stmt.While(condition, body);
-    }
-
-    private Stmt expressionStatement()
-    {
-        Expr expr = expression();
-
-        consume(SEMICOLON, "Expect ';' after expression");
-
-        return new Stmt.Expression(expr);
     }
 
     private Stmt.Function function(String kind)
@@ -239,9 +124,6 @@ public class Parser
         {
             // parses parameters as long as we find commas to separate them.
             do {
-                // if(parameters.size() >= 255)
-                //     error(peek(), "Can't have more that 255 parameters.");
-                
                 parameters.add(consume(IDENTIFIER, "Expect parameter name."));
             }while(match(COMMA));
 
@@ -255,27 +137,83 @@ public class Parser
         return new Stmt.Function(name, parameters, body);
     }
 
+    private Stmt varDeclaration()
+    {
+        // retrieve current token and move to subsequent one
+        Token name = consume(IDENTIFIER, "Expect variable name.");
+        
+        Expr initializer = null;
+        // assignment (=) is expected. Otherwise, uninitialized declaration is expected.
+        if (match(EQUAL))
+        {
+            initializer = expression();
+        }
+
+        // declaration without initialization.
+        consume(SEMICOLON, "Expect ';' after variable declaration.");
+        return new Stmt.Var(name, initializer);
+    }
+
+    // private Stmt arrDeclaration()
+    // {
+    //     // retrieve current token and move to subsequent one
+    //     Token name = consume(IDENTIFIER, "Expect array name.");
+    //     consume(LEFT_SQR_BRACKET, "Expect left square bracket.");
+    //     Expr size = expression();
+    //     consume(RIGHT_SQR_BRACKET, "Expect right square bracket.");
+    // }
+
     /**
-     *  Parses statements and add them to the list until we reach the end of the block
-     * marked by the closing curly bracket.
+     * Parses a statements.
      * @return
      */
-    private List<Stmt> block()
+    private Stmt statement()
     {
-        List<Stmt> statements = new ArrayList<>();
-
-        while(!check(RIGHT_BRACE) && !isAtEnd())
-            statements.add(declaration());
+        if (match(FOR))
+            return forStatement();
         
-        consume(RIGHT_BRACE, "Expect '}' after block");
-        return statements;
+        if (match(IF))
+            return ifStatement();
+        
+        if (match(RETURN))
+            return returnStatement();
+        
+        if (match(WHILE))
+            return whileStatement();
+        
+        if (match(LEFT_BRACE))
+            return new Stmt.Block(block());
+        
+        return expressionStatement();
+    }
+
+    private Stmt expressionStatement()
+    {
+        Expr expr = expression();
+
+        consume(SEMICOLON, "Expect ';' after expression");
+
+        return new Stmt.Expression(expr);
+    }
+
+    /**
+     * Expression grammar<p/>
+     * The rule for expression is as follow:<p/>
+     * <code>expression -> equality;</code>
+     * @return
+     */
+    private Expr expression()
+    {
+        return assignment();
     }
 
     /**
      * Handles assignment expressions (l-value statements).<p/>
      * The trick is that right before we create the assignment expression node,
      * we look at the left-hand side expression and figure out what kind of assignment
-     * target it is. We convert the r-value expression node into an l-value representation.
+     * target it is. We convert the r-value expression node into an l-value representation.<p/>
+     * This means we can parse the left-hand side as <i>if it were</i> an expression and then
+     * after the fact produce a syntax tree that turns it into an assignment target.
      * 
      * @return
      */
@@ -291,17 +229,22 @@ public class Parser
             // assignment() to parse the right-hand side.
             Expr value = assignment();
 
+            // figure out what kind of assignment target it is and
+            // convert the r-value expression node into an l-value representation.
             if (expr instanceof Expr.Variable)
             {
+                // This conversion works because it turns out that every valid
+                // assignment target happens to also be valid syntax as a normal expression.
+                // Consider a complex field assignment like:
+                // newPoint(x + 2, 0).y = 3;
+                // newPoint(x + 2, 0).y;
                 Token name = ((Expr.Variable)expr).name;
                 return new Expr.Assign(name, value);
             }
 
             //report an error if left-hand side isn't a valid assignment target.
-            //
             error(equals, "Invalid assignment target");
         }
-
         return expr;
     }
 
@@ -328,17 +271,6 @@ public class Parser
         }
 
         return expr;
-    }
-
-    /**
-     * Expression grammar<p/>
-     * The rule for expression is as follow:<p/>
-     * <code>expression -> equality;</code>
-     * @return
-     */
-    private Expr expression()
-    {
-        return assignment();
     }
 
     /**
@@ -432,7 +364,7 @@ public class Parser
 
     /**
      * The rule for unary is as follow:<p/>
-     * <code>unary -> ( "!" | "-" ) unary | primary;</code><p/>
+     * <code>unary -> ( "!" | "-" | "--" | "++" ) unary | primary;</code><p/>
      * 
      * @return
      */
@@ -444,13 +376,13 @@ public class Parser
             Expr right = unary();
             return new Expr.Unary(operator, right);
         }
-    
+
         return call();
     }
 
     private Expr call()
     {
-        Expr expr = primary();
+        Expr expr = increment();
         while(true)
         {
             if (match(LEFT_PAREN))
@@ -462,21 +394,22 @@ public class Parser
         return expr;
     }
 
-    private Expr finishCall(Expr callee)
+    private Expr increment()
     {
-        List<Expr> arguments = new ArrayList<>();
-        if (!check(RIGHT_PAREN))
+        Expr expr = primary();
+
+        if (match(INCREMENT, DECREMENT))
         {
-            do {
-                if (arguments.size() >= 255)
-                    error(peek(), "Can't have more than 255 arguments.");
-                
-                arguments.add(expression());
-            }while(match(COMMA));
+            Token sign = previous();
+
+            if (!(expr instanceof Expr.Variable))
+                error(sign, "Invalid increment target");
+            
+            Token name = ((Expr.Variable)expr).name;
+            return new Expr.Increment(name, sign);
         }
 
-        Token paren = consume(RIGHT_PAREN, "Expect ')' after arguments list.");
-        return new Expr.Call(callee, paren, arguments);
+        return expr;
     }
 
     /**
@@ -509,6 +442,140 @@ public class Parser
         }
 
         throw error(peek(), "Expect expression.");
+    }
+
+    // ============================================================ //
+    // ======================== Statements ======================== //
+    // ============================================================ //
+    /**
+     * Desugared implementation which means
+     * there is no dedicated syntax tree provided, instead
+     * 'for loop' is constructed based on 'while' loop.
+     * @return
+     */
+    private Stmt forStatement()
+    {
+        consume(LEFT_PAREN, "Expect '(' after 'for'.");
+        
+        // initializer
+        Stmt initializer;
+        if (match(SEMICOLON))
+            initializer = null;
+        else if (match(VAR))
+            initializer = varDeclaration();
+        else
+            initializer = expressionStatement();
+        
+
+        // condition
+        Expr condition = null;
+        if (!check(SEMICOLON))
+            condition = expression();
+        
+        consume(SEMICOLON, "Expect ';' after loop condition.");
+
+        // increment
+        Expr increment = null;
+        if (!check(RIGHT_PAREN))
+            increment = expression();
+        
+        consume(RIGHT_PAREN, "Expect ')' after for clause.");
+
+        // body
+        Stmt body = statement();
+
+        // The increment executes after the body in each iteration of the loop.
+        if (null != increment)
+            body = new Stmt.Block(Arrays.asList(body, new Stmt.Expression(increment)));
+
+        // take the condition and the body and build the loop using a primitive while loop
+        if (null == condition)
+            condition = new Expr.Literal(true); // true for infinite loop
+
+        body = new Stmt.While(condition, body);
+        
+        // if there is an initializer, it runs once before the entire loop
+        if (null != initializer)
+            body = new Stmt.Block(Arrays.asList(initializer, body));
+        
+        return body;
+    }
+
+    private Stmt whileStatement()
+    {
+        consume(LEFT_PAREN, "Expect '(' after 'while'");
+        Expr condition = expression();
+        consume(RIGHT_PAREN, "Expect ')' after condition");
+        Stmt body = statement();
+        return new Stmt.While(condition, body);
+    }
+
+    private Stmt ifStatement()
+    {
+        consume(LEFT_PAREN, "Expect '(' after 'if'.");
+        Expr condition = expression();
+        consume(RIGHT_PAREN, "Expect ')' after if condition.");
+        
+        Stmt thenBranch = statement();
+        Stmt elseBranch = null;
+        
+        if (match(ELSE))
+        {
+            elseBranch = statement();
+        }
+
+        return new Stmt.If(condition, thenBranch, elseBranch);
+    }
+
+    private Stmt returnStatement()
+    {
+        Token keyword = previous();
+        Expr value = null;
+
+        if(!check(SEMICOLON))
+            value = expression();
+        
+        consume(SEMICOLON, "Expect ';' after return value.");
+        return new Stmt.Return(keyword, value);
+    }
+
+    /**
+     *  Parses statements and add them to the list until we reach the end of the block
+     * marked by the closing curly bracket.
+     * @return
+     */
+    private List<Stmt> block()
+    {
+        List<Stmt> statements = new ArrayList<>();
+
+        while(!check(RIGHT_BRACE) && !isAtEnd())
+            statements.add(declaration());
+        
+        consume(RIGHT_BRACE, "Expect '}' after block");
+        return statements;
+    }
+
+    // ========================================================= //
+    // ======================== Helpers ======================== //
+    // ========================================================= //
+    private Expr finishCall(Expr callee)
+    {
+        List<Expr> arguments = new ArrayList<>();
+        if (!check(RIGHT_PAREN))
+        {
+            do {
+                // if (arguments.size() >= 255)
+                //     error(peek(), "Can't have more than 255 arguments.");
+                
+                arguments.add(expression());
+            }while(match(COMMA));
+
+            if (arguments.size() >= 255)
+                    error(peek(), "Can't have more than 255 arguments.");
+        }
+
+        Token paren = consume(RIGHT_PAREN, "Expect ')' after arguments list.");
+        return new Expr.Call(callee, paren, arguments);
     }
 
     /**
@@ -559,7 +626,6 @@ public class Parser
                 case FOR:
                 case IF:
                 case WHILE:
-                case PRINT:
                 case RETURN:
                     return;
             }
@@ -631,6 +697,11 @@ public class Parser
      */
     private Token peek() {
         return tokens.get(current);
+    }
+
+    private Token peekNext()
+    {
+        return tokens.get(current + 1);
     }
 
     /**

@@ -1,13 +1,15 @@
 @echo off
 
 chcp 1251
+set src=%~dp0scripts\
 
-rem set sct=%~dp0scripts\interpreter_test.bee
-rem set sct=%~dp0scripts\scope_tests.bee
-rem set sct=%~dp0scripts\for_loop_test.bee
-rem set sct=%~dp0scripts\native_func_test.bee
-rem set sct=%~dp0scripts\funcs_test.bee
-set sct=%~dp0scripts\funcs_performance_test.bee
+rem set input=%src%print_test.bee;
+set input=%src%native_clock_test.bee;%input%
+rem set input=%src%equality_test.bee;%input%
+rem set input=%src%environments_test.bee;%input%
+rem set input=%src%parentheses_test.bee;%input%
+rem set input=%src%functions_call_test.bee;%input%
+rem set input=%src%increment_test.bee;%input%
 
-java -cp bin ru.beelang.Main %sct%
+java -cp bin ru.beelang.Main %input%
 pause

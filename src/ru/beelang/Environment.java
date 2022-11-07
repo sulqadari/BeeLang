@@ -74,8 +74,15 @@ public class Environment
      * @param name
      * @param value
      */
-    void define(String name, Object value)
+    // void define(String name, Object value)
+    // {
+    //     values.put(name, value);
+    // }
+    void define(String name, Object value, Token token)
     {
+        if (values.containsKey(name))
+            throw new RuntimeError(token, "identifier '" + name + "' is already in use.");
+
         values.put(name, value);
     }
 

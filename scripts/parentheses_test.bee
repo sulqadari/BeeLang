@@ -1,0 +1,67 @@
+println("");
+println("********* PARENTHESES TEST *********");
+
+var a = "global A";
+
+fun myFun(param)
+{
+	println(param);
+}
+
+println("case 1");
+myFun(a);	//global A
+
+println("case 2");
+{
+	var a = "outer in myFun()";
+	fun myFun(b)
+	{
+		println(b);
+	}
+	myFun(a); //outer in myFun()
+}
+println("case 3");
+
+myFun(a);//global A
+{
+	a = "reassign";
+}
+myFun(a); //reassign 
+
+fun reassing(param)
+{
+	param = "reassign()";
+}
+
+reassing(a);
+myFun(a);
+
+{
+	var a = "outer";
+	{
+	  var a = a;
+	  myFun(a + " in scope");
+	  a = "inner";
+	  println(a);
+	}
+
+	println(a);
+}
+
+println("case 5");
+{
+  myFun(a);
+  var a = "inner";
+}
+
+println("case 5");
+a = "global";
+{
+  fun showA() {
+    println(a);
+  }
+
+  showA();
+  var a = "block";
+  showA();
+}
