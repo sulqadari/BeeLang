@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import ru.beelang.utils.Hlp;
+
 import static ru.beelang.TokenType.*;
 
 /**
@@ -20,7 +22,7 @@ public class Scanner
 
     static {
         keywords = new HashMap<>();
-        keywords.put("arr",    ARR);
+        //keywords.put("arr",    ARR);
         keywords.put("var",    VAR);
         keywords.put("return", RETURN);
         keywords.put("fun",    FUN);
@@ -60,7 +62,7 @@ public class Scanner
             start = current;
             scanToken();
         }
-
+        
         tokens.add(new Token(EOF, "", null, line));
         return tokens;
     }
@@ -74,55 +76,58 @@ public class Scanner
     {
         char c = advance();
         switch (c) {
-            case '(': addToken(LEFT_PAREN); break;
-            case ')': addToken(RIGHT_PAREN); break;
-            case '{': addToken(LEFT_BRACE); break;
-            case '}': addToken(RIGHT_BRACE); break;
-            case ',': addToken(COMMA); break;
-            case '.': addToken(DOT); break;
-            case ';': addToken(SEMICOLON); break;
-            case '*': addToken(STAR); break;
-            case '[': addToken(LEFT_SQR_BRACKET); break;
-            case ']': addToken(RIGHT_SQR_BRACKET); break;
-            case '-': addToken(match('-') ? DECREMENT : MINUS); break;
-            case '+': addToken(match('+') ? INCREMENT : PLUS); break;
-            case '!': addToken(match('=') ? BANG_EQUAL : BANG); break;
-            case '=': addToken(match('=') ? EQUAL_EQUAL : EQUAL); break;
-            case '<': addToken(match('=') ? LESS_EQUAL : LESS); break;
+            case '(': addToken(LEFT_PAREN);     break;
+            case ')': addToken(RIGHT_PAREN);    break;
+            case '{': addToken(LEFT_BRACE);     break;
+            case '}': addToken(RIGHT_BRACE);    break;
+            case '[': addToken(LEFT_BRACKET);   break;
+            case ']': addToken(RIGHT_BRACKET);  break;
+            case ',': addToken(COMMA);          break;
+            case '.': addToken(DOT);            break;
+            case ';': addToken(SEMICOLON);      break;
+            case '*': addToken(STAR);           break;
+            case '-': addToken(match('-') ? DECREMENT : MINUS);       break;
+            case '+': addToken(match('+') ? INCREMENT : PLUS);        break;
+            case '!': addToken(match('=') ? BANG_EQUAL : BANG);       break;
+            case '=': addToken(match('=') ? EQUAL_EQUAL : EQUAL);     break;
+            case '<': addToken(match('=') ? LESS_EQUAL : LESS);       break;
             case '>': addToken(match('=') ? GREATER_EQUAL : GREATER); break;
-            // case '&': addToken(AND); break;
-            // case '|': addToken(OR); break;
-            case '/':
-                if (match('/'))
-                {
-                    // A comment goes until the end of the line.
-                    while (peek() != '\n' && !isAtEnd())
-                        advance();
-                }else
-                {
-                    addToken(SLASH);
-                }
-            break;
-            // Ignore whitespaces.
-            case ' ': case '\r': case '\t':
-            break;
-            case '\n':
-                line++;
-            break;
-            case '"': string(); break;
-            default:
-            {
-                if (isDigit(c))
-                {
-                    number();
-                } else if (isAlpha(c))
-                {
-                    identifier();
-                } else
-                {
-                    Main.error(line, "Unexpected character.");
-                }
-            }break;
+            case '\'': byteArray();             break;
+            case '/': comment();                break;
+            case '"': string();                 break;
+            case '\n': line++;                  break;  // lines counter
+            case ' ': case '\r': case '\t':     break;  // Ignore whitespaces.
+            default:  userDefined(c);           break;
+        }
+    }
+
+    private void comment()
+    {
+        // if successive character is slash too...
+        if (match('/'))
+        {   // ..go until the end of the line.
+            while (peek() != '\n' && !isAtEnd())
+                advance();
+        }else   // otherwise we a about to add devision sign.
+        {
+            addToken(SLASH);
+        }
+    }
+
+    private void userDefined(char c)
+    {
+        if (isDecimal(c))
+        {
+            if (inHex(c))
+                hexadecimal();
+            else
+                decimal();
+
+        }else if (isAlpha(c))
+        {
+            identifier();
+        }else {
+            Main.error(line, "Unexpected character.");
         }
     }
 
@@ -145,47 +150,78 @@ public class Scanner
         
         addToken(type);
     }
-    
-    private void number()
+
+    private void decimal()
     {
-        while (isDigit(peek()))
+        while (isDecimal(peek()))
             advance();
 
-        // Look for a fractional part.
-        if (peek() == '.' && isDigit(peekNext()))
+        try {
+            addToken(NUMBER, Integer.parseInt(source.substring(start, current), 10));
+        }catch(NumberFormatException e)
         {
-            // Consume the "."
-            advance();
+            Main.error(line, "Interpreter accepts positive values only." + '\n' +
+                              "Note: 2147483648 and above implicitly converts to negative int." + '\n');
+        }
+    }
 
-            while (isDigit(peek()))
-                advance();
+    private void hexadecimal()
+    {
+        while (isHex(peek()))
+            advance();
+        
+        // trim preceding 0x
+        String value = source.substring(start + 2, current);
+        try {
+            addToken(NUMBER, Integer.parseInt(value, 16));
+        }catch(NumberFormatException e)
+        {
+            Main.error(line, "Interpreter accepts positive values only."
+                            + '\n' + "Note: 0x80000000 and above implicitly converts to int." + '\n');
+        }
+    }
+
+    /**
+     * Returns <code>true</code> if current character is within following ranges:
+     * [a-f] [A-F] [0-9]
+     * @param c
+     * @return
+     */
+    private boolean isHex(char c)
+    {
+        return (c >= 'A' && c <= 'F') ||
+               (c >= 'a' && c <= 'f') ||
+               (c >= '0' && c <= '9');
+    }
+
+    private void byteArray()
+    {
+        addToken(QUOTE);
+        
+        while ((peek() != '\'') && !isAtEnd())
+        {
+            if (peek() == '\n')
+                line++;
+            advance();
         }
 
-        addToken(NUMBER, Integer.parseInt(source.substring(start, current)));
+        if (isAtEnd())
+        {
+            Main.error(line, "Unterminated byte string.");
+            return;
+        }
+
+        // The closing '.
+        advance();
+        
+        // Trim the surrounding square brackets.
+        addToken(ARR, Hlp.toByteArray(source.substring(++start, current - 1)));
     }
 
-    private boolean isAlpha(char c)
-    {
-        return (c >= 'a' && c <= 'z') ||
-               (c >= 'A' && c <= 'Z') ||
-               (c == '_');
-    }
-
-    private boolean isAlphaNumeric(char c)
-    {
-        return isAlpha(c) || isDigit(c);
-    }
-
-    private boolean isDigit(char c)
-    {
-        return c >= '0' && c <= '9';
-    }
-
-    /**<code></code>
+    /**
      * <p>Handles string.</p>
-     * When the current token is of type '"' this method is invoked from 
-     * <code>scanToken()</code> and advances <code>current</code> until
-     * it encounters with the closing double quote.
+     * When the current token is of type '"' this method
+     *  advances <code>current</code> until it encounters with the closing double quote.
      * <p>Then the substring <code>start + 1, current - 1</code> is stored using
      * overloaded <code>addToken()</code> method.</p>
      */
@@ -204,7 +240,7 @@ public class Scanner
             return;
         }
 
-        // The closing ".
+        // Consume the closing ".
         advance();
 
         // Trim the surrounding quotes.
@@ -212,6 +248,12 @@ public class Scanner
         addToken(STRING, value);
     }
 
+    /**
+     * Examines current character for equality with the given value.
+     * If they match then <code>corrent</code> is shifted forward.
+     * @param expected
+     * @return
+     */
     private boolean match(char expected)
     {
         if (isAtEnd())
@@ -249,16 +291,65 @@ public class Scanner
         return source.charAt(current + 1);
     }
 
+    private char peekPrevious()
+    {
+        return source.charAt(current - 1);
+    }
+
     private boolean isAtEnd()
     {
         return current >= source.length();
+    }
+        
+    /**
+     * Checks if the current token is letter or digit, but not
+     * special character
+     * @param c character under examination
+     * @return true if it is. False otherwise
+     */
+    private boolean isAlphaNumeric(char c)
+    {
+        return isAlpha(c) || isDecimal(c);
+    }
+
+    /**
+     * Returns <code>true</code> if current character is within following ranges:
+     * [a-z]  [A-Z] _
+     * @param c
+     * @return
+     */
+    private boolean isAlpha(char c)
+    {
+        return (c >= 'a' && c <= 'z') ||
+               (c >= 'A' && c <= 'Z') ||
+               (c == '_');
+    }
+
+    /**
+     * Returns <code>true</code> if current character is within ranges [0-9]
+     * @param c
+     * @return
+     */
+    private boolean isDecimal(char c)
+    {
+        return c >= '0' && c <= '9';
+    }
+
+    private boolean inHex(char c)
+    {
+        if (peek() == 'x' && peekPrevious() == '0')
+        {
+            advance();
+            return true;
+        }
+        return false;
     }
 
     /**
      * Returns current character to be processed.<p>
      * Before method returns the <code>current</code> is incremented
-     * thus next time this method being called the latter variable will
-     * point to the next character in input stream.
+     * so the next time this method being called the <code>current</code> will
+     * point to successive character in input stream.
      * @return
      */
     private char advance()

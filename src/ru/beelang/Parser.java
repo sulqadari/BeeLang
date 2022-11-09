@@ -102,8 +102,6 @@ public class Parser
                 return function("function");
             if (match(VAR))
                 return varDeclaration();
-            // if (match(ARR))
-            //     return arrDeclaration();
             
             return statement();
         }catch(ParseError error)
@@ -143,12 +141,14 @@ public class Parser
         Token name = consume(IDENTIFIER, "Expect variable name.");
         
         Expr initializer = null;
-        // assignment (=) is expected. Otherwise, uninitialized declaration is expected.
+
         if (match(EQUAL))
         {
+            if (match(QUOTE)){ /* in case we initialize an array consume openning quote  */}
+
             initializer = expression();
         }
-
+        
         // declaration without initialization.
         consume(SEMICOLON, "Expect ';' after variable declaration.");
         return new Stmt.Var(name, initializer);
@@ -220,12 +220,10 @@ public class Parser
     private Expr assignment()
     {
         Expr expr = or();
-
-        // parse right-hand side
         if(match(EQUAL))
-        {
+        {               
             Token equals = previous();
-            //Since assignment is right-associative, we recursively call
+            // Since assignment is right-associative, we recursively call
             // assignment() to parse the right-hand side.
             Expr value = assignment();
 
@@ -312,7 +310,8 @@ public class Parser
      */
     private Expr comparison()
     {
-        Expr expr = term();
+        //Expr expr = term();
+        Expr expr = arrIdx();
 
         while(match(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL))
         {
@@ -324,6 +323,23 @@ public class Parser
         return expr;
     }
 
+    private Expr arrIdx()
+    {
+        Expr expr = term();         // contains indentifier Expr.Variable()
+                                    // i = my_arr[6];
+                                    //     ^
+        // if (match(LEFT_SQR_BRACKET))// i = my_arr[6];
+        // {                           //           ^
+        //                             // retrieve index value Expr.Literal()
+        //     Expr value = term();    // i = my_arr[6];
+        //                             //            ^
+            
+        //     int idx = (int)((Expr.Literal)value).value;
+        //     return new Expr.Variable(((Expr.Variable)expr).name, idx);
+        // }
+
+        return expr;
+    }
     /**
      * The rule for term is as follow:<p/>
      * <code>term -> factor (( "-" | "+" ) factor)*;</code><p/>
@@ -404,7 +420,7 @@ public class Parser
 
             if (!(expr instanceof Expr.Variable))
                 error(sign, "Invalid increment target");
-            
+            // extract Token obj from Expr.Variable obj
             Token name = ((Expr.Variable)expr).name;
             return new Expr.Increment(name, sign);
         }
@@ -428,12 +444,12 @@ public class Parser
         if (match(NIL))
             return new Expr.Literal(null);
     
-        if (match(NUMBER, STRING))
+        if (match(NUMBER, STRING, ARR))
             return new Expr.Literal(previous().literal);
 
         if (match(IDENTIFIER))
             return new Expr.Variable(previous());
-    
+
         if (match(LEFT_PAREN))
         {
             Expr expr = expression();

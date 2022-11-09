@@ -61,6 +61,13 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
     // ======================================================= //
     
     @Override
+    public Object visitArrayIndexExpr(Expr.ArrayIndex expr)
+    {
+
+        return null;
+    }
+
+    @Override
     public Object visitIncrementExpr(Expr.Increment expr)
     {
         Object currVal = environment.get(expr.name);

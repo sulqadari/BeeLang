@@ -4,6 +4,7 @@ import java.util.List;
 
 abstract class Expr {
     interface Visitor<R> {
+        R visitArrayIndexExpr(ArrayIndex expr);
         R visitIncrementExpr(Increment expr);
         R visitAssignExpr(Assign expr);
         R visitBinaryExpr(Binary expr);
@@ -13,6 +14,21 @@ abstract class Expr {
         R visitLogicalExpr(Logical expr);
         R visitUnaryExpr(Unary expr);
         R visitVariableExpr(Variable expr);
+    }
+
+    static class ArrayIndex extends Expr {
+        ArrayIndex(Token name, Expr index) {
+            this.name = name;
+            this.index = index;
+        }
+
+        @Override
+        <R> R accept(Visitor<R> visitor) {
+            return visitor.visitArrayIndexExpr(this);
+        }
+
+        final Token name;
+        final Expr index;
     }
 
     static class Increment extends Expr {
