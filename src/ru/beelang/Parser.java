@@ -144,8 +144,7 @@ public class Parser
 
         if (match(EQUAL))
         {
-            if (match(QUOTE)){ /* in case we initialize an array consume openning quote  */}
-
+            //if (match(QUOTE)){ /* just consume openning quote in case we initialize an array */}
             initializer = expression();
         }
         
@@ -325,18 +324,7 @@ public class Parser
 
     private Expr arrIdx()
     {
-        Expr expr = term();         // contains indentifier Expr.Variable()
-                                    // i = my_arr[6];
-                                    //     ^
-        // if (match(LEFT_SQR_BRACKET))// i = my_arr[6];
-        // {                           //           ^
-        //                             // retrieve index value Expr.Literal()
-        //     Expr value = term();    // i = my_arr[6];
-        //                             //            ^
-            
-        //     int idx = (int)((Expr.Literal)value).value;
-        //     return new Expr.Variable(((Expr.Variable)expr).name, idx);
-        // }
+        Expr expr = term();
 
         return expr;
     }
@@ -412,7 +400,7 @@ public class Parser
 
     private Expr increment()
     {
-        Expr expr = primary();
+        Expr expr = array();
 
         if (match(INCREMENT, DECREMENT))
         {
@@ -428,6 +416,16 @@ public class Parser
         return expr;
     }
 
+    private Expr array()
+    {
+        if (match(QUOTE))
+        {
+            advance();
+            return new Expr.Literal(previous().literal);
+        }
+
+        return primary();
+    }
     /**
      * The rule for primary is as follow:<p/>
      * <code>primary -> NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")";</code><p/>
@@ -444,7 +442,7 @@ public class Parser
         if (match(NIL))
             return new Expr.Literal(null);
     
-        if (match(NUMBER, STRING, ARR))
+        if (match(NUMBER, STRING))
             return new Expr.Literal(previous().literal);
 
         if (match(IDENTIFIER))
@@ -580,9 +578,6 @@ public class Parser
         if (!check(RIGHT_PAREN))
         {
             do {
-                // if (arguments.size() >= 255)
-                //     error(peek(), "Can't have more than 255 arguments.");
-                
                 arguments.add(expression());
             }while(match(COMMA));
 

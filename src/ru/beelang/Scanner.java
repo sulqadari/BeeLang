@@ -22,7 +22,7 @@ public class Scanner
 
     static {
         keywords = new HashMap<>();
-        //keywords.put("arr",    ARR);
+        //keywords.put("arr",    QUOTE);
         keywords.put("var",    VAR);
         keywords.put("return", RETURN);
         keywords.put("fun",    FUN);
@@ -211,11 +211,11 @@ public class Scanner
             return;
         }
 
-        // The closing '.
+        // consume the closing '.
         advance();
         
         // Trim the surrounding square brackets.
-        addToken(ARR, Hlp.toByteArray(source.substring(++start, current - 1)));
+        addToken(ARR, Hlp.toByteArray(source.substring(start + 1, current - 1)));
     }
 
     /**

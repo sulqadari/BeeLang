@@ -7,7 +7,7 @@ import ru.beelang.Token;
 
 public class Println implements BeeCallable
 {
-    // negative value stands for variable length of params.
+    // negative value designates variable length of params.
     final int arity = -1;
 
     @Override

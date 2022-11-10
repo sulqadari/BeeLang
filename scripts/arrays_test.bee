@@ -1,0 +1,21 @@
+println("********* ARRAYS TEST *********");
+
+var a_arr = '102030405060708090A0B0C0D0E0F10
+		    02030405060708090A0B0C0D0E0F1011
+		    030405060708090A0B0C0D0E0F101112
+		    0405060708090A0B0C0D0E0F10111213
+		    05060708090A0B0C0D0E0F1011121314';
+
+println(a_arr);
+inHex(a_arr);
+inHex('A050');
+inHex(160);
+
+var i = 150;
+inHex(i);
+
+
+i = 0x150;
+inHex(i);
+
+println(i);
