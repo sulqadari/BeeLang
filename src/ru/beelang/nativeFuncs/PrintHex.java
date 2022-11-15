@@ -29,12 +29,17 @@ public class PrintHex  implements BeeCallable
 
         if ((arguments.get(0)) instanceof byte[])
         {
-            byte[] bArr = (byte[])(arguments.get(0));
-            for (byte b : bArr)
+            byte[] array;// = (byte[])(arguments.get(0));
+
+            for (int i = 0; i < arguments.size(); ++i)
             {
-                System.out.printf("%02X", b);
+                array  = (byte[])(arguments.get(i));
+
+                for (byte b : array)
+                {
+                    System.out.printf("%02X", b);
+                }
             }
-           // Arrays.stream(bArr).forEach(e -> System.out.printf("%02X", e));
         }
         else
         {

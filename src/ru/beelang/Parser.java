@@ -144,7 +144,6 @@ public class Parser
 
         if (match(EQUAL))
         {
-            //if (match(QUOTE)){ /* just consume openning quote in case we initialize an array */}
             initializer = expression();
         }
         
@@ -325,6 +324,10 @@ public class Parser
     private Expr arrIdx()
     {
         Expr expr = term();
+        if (match(LEFT_BRACKET))
+        {
+
+        }
 
         return expr;
     }
@@ -420,7 +423,10 @@ public class Parser
     {
         if (match(QUOTE))
         {
+            // advance ARR token containing byte[] array literal.
+            // This step is enforced by an overal logic of the Parser.
             advance();
+            // Retrieve ARR's value
             return new Expr.Literal(previous().literal);
         }
 

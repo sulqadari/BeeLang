@@ -73,11 +73,8 @@ public class Environment
      * Binds a new name to a value.
      * @param name
      * @param value
+     * @throws RuntimeError if variable have already been defined
      */
-    // void define(String name, Object value)
-    // {
-    //     values.put(name, value);
-    // }
     void define(String name, Object value, Token token)
     {
         if (values.containsKey(name))
