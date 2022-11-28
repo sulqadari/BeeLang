@@ -19,6 +19,9 @@ public class Print implements BeeCallable
     @Override
     public Object call(Interpreter interpreter, List<Object> arguments, Token token)
     {
+        if (null == arguments)
+            return null;
+        
         for(Object arg : arguments)
         {
             System.out.print(stringify(arg));

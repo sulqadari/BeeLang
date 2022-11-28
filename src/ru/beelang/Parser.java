@@ -102,8 +102,6 @@ public class Parser
                 return function("function");
             if (match(VAR))
                 return varDeclaration();
-            // if (match(ARR))
-            //     return arrDeclaration();
             
             return statement();
         }catch(ParseError error)
@@ -143,12 +141,12 @@ public class Parser
         Token name = consume(IDENTIFIER, "Expect variable name.");
         
         Expr initializer = null;
-        // assignment (=) is expected. Otherwise, uninitialized declaration is expected.
+
         if (match(EQUAL))
         {
             initializer = expression();
         }
-
+        
         // declaration without initialization.
         consume(SEMICOLON, "Expect ';' after variable declaration.");
         return new Stmt.Var(name, initializer);
@@ -220,12 +218,10 @@ public class Parser
     private Expr assignment()
     {
         Expr expr = or();
-
-        // parse right-hand side
         if(match(EQUAL))
-        {
+        {               
             Token equals = previous();
-            //Since assignment is right-associative, we recursively call
+            // Since assignment is right-associative, we recursively call
             // assignment() to parse the right-hand side.
             Expr value = assignment();
 
@@ -312,7 +308,8 @@ public class Parser
      */
     private Expr comparison()
     {
-        Expr expr = term();
+        //Expr expr = term();
+        Expr expr = arrIdx();
 
         while(match(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL))
         {
@@ -324,6 +321,16 @@ public class Parser
         return expr;
     }
 
+    private Expr arrIdx()
+    {
+        Expr expr = term();
+        if (match(LEFT_BRACKET))
+        {
+
+        }
+
+        return expr;
+    }
     /**
      * The rule for term is as follow:<p/>
      * <code>term -> factor (( "-" | "+" ) factor)*;</code><p/>
@@ -396,7 +403,7 @@ public class Parser
 
     private Expr increment()
     {
-        Expr expr = primary();
+        Expr expr = array();
 
         if (match(INCREMENT, DECREMENT))
         {
@@ -404,7 +411,7 @@ public class Parser
 
             if (!(expr instanceof Expr.Variable))
                 error(sign, "Invalid increment target");
-            
+            // extract Token obj from Expr.Variable obj
             Token name = ((Expr.Variable)expr).name;
             return new Expr.Increment(name, sign);
         }
@@ -412,6 +419,19 @@ public class Parser
         return expr;
     }
 
+    private Expr array()
+    {
+        if (match(QUOTE))
+        {
+            // advance ARR token containing byte[] array literal.
+            // This step is enforced by an overal logic of the Parser.
+            advance();
+            // Retrieve ARR's value
+            return new Expr.Literal(previous().literal);
+        }
+
+        return primary();
+    }
     /**
      * The rule for primary is as follow:<p/>
      * <code>primary -> NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")";</code><p/>
@@ -433,7 +453,7 @@ public class Parser
 
         if (match(IDENTIFIER))
             return new Expr.Variable(previous());
-    
+
         if (match(LEFT_PAREN))
         {
             Expr expr = expression();
@@ -564,9 +584,6 @@ public class Parser
         if (!check(RIGHT_PAREN))
         {
             do {
-                // if (arguments.size() >= 255)
-                //     error(peek(), "Can't have more than 255 arguments.");
-                
                 arguments.add(expression());
             }while(match(COMMA));
 

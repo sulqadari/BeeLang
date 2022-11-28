@@ -5,6 +5,7 @@ import java.util.List;
 import ru.beelang.nativeFuncs.BeeCallable;
 import ru.beelang.nativeFuncs.Clock;
 import ru.beelang.nativeFuncs.Print;
+import ru.beelang.nativeFuncs.PrintHex;
 import ru.beelang.nativeFuncs.Println;
 
 import java.util.ArrayList;
@@ -21,6 +22,7 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
         globals.define("clock", new Clock(), null);
         globals.define("print", new Print(), null);
         globals.define("println", new Println(), null);
+        globals.define("inHex", new PrintHex(), null);
     }
 
     void interpret(List<Stmt> statements)
@@ -60,6 +62,13 @@ public class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void>
     // ============== Expr.Visitor implementation ============ //
     // ======================================================= //
     
+    @Override
+    public Object visitArrayIndexExpr(Expr.ArrayIndex expr)
+    {
+
+        return null;
+    }
+
     @Override
     public Object visitIncrementExpr(Expr.Increment expr)
     {

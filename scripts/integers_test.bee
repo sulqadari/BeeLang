@@ -1,0 +1,36 @@
+
+println("********* INTEGERS TEST *********");
+
+var k = 2147483647;
+var j = 2147483648;
+fun isEqual(i, j)
+{
+	print("i: ");print(i);
+	print(" j: ");println(j);
+	
+	if (i == j)
+		println("i equal j");
+	else
+		println("i not equal j");	
+	println();
+}
+
+fun subtract(i, j)
+{
+	print("i - j = "); println(i - j);
+	println();
+}
+
+var i = 10;
+//var j = 0x0A;
+isEqual(i, j);
+
+j = 0x10;
+isEqual(i, j);
+
+subtract(i, j);
+
+i = 0x80000000;
+j = -2;
+
+subtract(i, j);

@@ -1,0 +1,49 @@
+println("********* ARRAYS TEST *********");
+
+var i = 0x150;
+
+print("in decimal: ");
+println(i);
+
+print("in hexadecimal: ");
+inHex(i);
+
+
+i = 150;
+print("in decimal: ");
+println(i);
+
+print("in hexadecimal: ");
+inHex(i);
+
+var a_arr = '102030405060708090A0B0C0D0E0F10
+		    02030405060708090A0B0C0D0E0F1011
+		    030405060708090A0B0C0D0E0F101112
+		    0405060708090A0B0C0D0E0F10111213
+		    05060708090A0B0C0D0E0F1011121314';
+
+println(a_arr);
+println();
+
+inHex(a_arr, a_arr);
+println();
+
+inHex('A050', '50A0');
+
+inHex(160, 159, 158, 157, 156, 155, 154, 153);
+println();
+
+
+// Stmt.Var.Token = variable name;
+// Stmt.Var.Literal.value = byte[];
+
+var j;
+for(var i = 0; i < a_arr.length; )
+{
+	j = a_arr[(a_arr.length - 1) - i++];
+	inHex(j);
+	print(" ");
+	
+	if (i == 16)
+		println();
+}
